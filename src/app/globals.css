@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6efe1;
+  --foreground: #1f1931;
+  --surface: #fff9ef;
+  --surface-strong: #fce8c6;
+  --accent: #ef6d44;
+  --accent-deep: #a33b1d;
+  --accent-cool: #2747b3;
+  --line: #dbc7ad;
+  --muted: #665d74;
+  --winner: #0b8e6b;
+  --bust: #b7354d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-cool: var(--accent-cool);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-winner: var(--winner);
+  --color-bust: var(--bust);
+  --font-sans: var(--font-space-grotesk);
+  --font-serif: var(--font-fraunces);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(239, 109, 68, 0.16), transparent 30%),
+    radial-gradient(circle at top right, rgba(39, 71, 179, 0.14), transparent 28%),
+    linear-gradient(180deg, #fff6e4 0%, #f7eddc 100%);
+  color: var(--foreground);
+  font-family: var(--font-space-grotesk), sans-serif;
+  min-height: 100vh;
+}
+
+a,
+button,
+input,
+select {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+::selection {
+  background: rgba(239, 109, 68, 0.24);
+}
+
+.page-shell {
+  position: relative;
+}
+
+.page-shell::before {
+  background-image:
+    linear-gradient(rgba(31, 25, 49, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 25, 49, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  content: "";
+  inset: 0;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 90%);
+  pointer-events: none;
+  position: fixed;
+}
+
+.glass-card {
+  backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--surface) 86%, white 14%);
+  border: 1px solid rgba(31, 25, 49, 0.09);
+  box-shadow:
+    0 24px 60px rgba(70, 44, 18, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.pulse-dot {
+  animation: pulse-ring 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
