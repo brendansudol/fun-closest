@@ -12,6 +12,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",
     "next": "16.1.6",
+    "postgres": "^3.4.8",
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",

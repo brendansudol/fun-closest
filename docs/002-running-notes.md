@@ -19,12 +19,13 @@ The main flow is live now:
 - scoreboard
 - QR join
 - polling-based host and player views
+- Neon-backed shared persistence through `DATABASE_URL`
 
 ## Main implementation pieces
 
 - Backend game engine: `src/lib/cwogo/actions.ts`
 - Role-aware serializers: `src/lib/cwogo/serializers.ts`
-- File-backed persistence layer: `src/lib/cwogo/store.ts`
+- Postgres-backed persistence layer: `src/lib/cwogo/store.ts`
 - Guess parsing: `src/lib/cwogo/parse-guess.ts`
 - Scoring logic: `src/lib/cwogo/scoring.ts`
 - Host UI: `src/components/cwogo/host-room-screen.tsx`
@@ -65,25 +66,27 @@ Manual HTTP smoke test was also completed locally with `curl` across:
 
 ## Deliberate deviation from spec
 
-The spec recommends Neon/Postgres + Drizzle as the primary persistence layer.
+The spec recommends Neon/Postgres + Drizzle with a normalized relational schema.
 
-Current implementation uses local file storage at:
+Current implementation now uses Neon/Postgres, but not the full relational model yet.
 
-- `.data/cwogo-store.json`
+The storage shape is currently a single transactional store row in Postgres rather than full tables for rooms, rounds, players, and guesses.
 
 Reason:
 
-- keeps the app runnable in this repo with no external setup
-- keeps the state model isolated so the storage layer can be swapped later
+- keeps local and Vercel pointed at the same database
+- removes the local filesystem blocker for Vercel deployment
+- keeps the state model isolated so a fuller relational migration can happen later
 
 ## Important operational caveats
 
-- Persistence is local-only right now. This is good for development, not deployment.
-- The current mutation queue is in-process, which is acceptable for local single-process use but not a substitute for database transactions.
+- Persistence is now shared through Neon and works for local plus Vercel.
+- The current store uses row-level transactional locking around a JSON store document.
+- This is deployable, but still less expressive than the normalized schema from the spec.
 - There is no rate limiting yet.
 - There is no automated test suite yet beyond typecheck/lint/build.
 - There is no analytics/observability pipeline yet.
-- The current app is optimized for trying the game locally, not for multi-instance production hosting.
+- The current app should behave correctly on Vercel, but schema evolution and analytics are still early-stage.
 
 ## Local playtesting notes
 
@@ -100,18 +103,12 @@ Important:
 - host and player should be tested in separate browser contexts
 - if the same browser context holds both sessions, host behavior can mask player behavior
 
-To reset local state:
-
-```bash
-rm -f .data/cwogo-store.json
-```
-
 ## Gaps relative to the original spec
 
 These areas are still open:
 
-- Postgres / Neon / Drizzle integration
-- formal DB schema and migrations
+- full Drizzle integration
+- normalized DB schema and migrations
 - rate limiting
 - heartbeat / presence handling
 - automated unit, integration, and e2e tests
@@ -120,11 +117,11 @@ These areas are still open:
 
 ## Recommended next step
 
-The cleanest next step is to replace the file-backed store with Postgres while preserving the existing route contract and UI behavior.
+The cleanest next step is to migrate from the current Postgres JSON store to the normalized Drizzle schema from the original spec while preserving the current route contract and UI behavior.
 
 Suggested order:
 
-1. Introduce Drizzle schema and a database client.
-2. Port the store reads and writes behind the current server action boundary.
-3. Preserve the current role-aware serializers and route payloads.
-4. Add tests around round transitions, scoring, and redaction before shipping.
+1. Introduce Drizzle schema and migrations.
+2. Move rooms, players, rounds, and guesses into first-class tables.
+3. Preserve the current role-aware serializers and API payloads.
+4. Add tests around round transitions, scoring, and redaction before further feature work.

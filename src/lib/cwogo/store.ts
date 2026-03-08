@@ -1,5 +1,4 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import postgres from "postgres";
 import type {
   CwogoGuessStore,
   CwogoPlayerStore,
@@ -7,9 +6,6 @@ import type {
   CwogoRoundStore,
   CwogoStore,
 } from "@/types/cwogo";
-
-const DATA_DIR = path.join(process.cwd(), ".data");
-const STORE_PATH = path.join(DATA_DIR, "cwogo-store.json");
 
 const EMPTY_STORE: CwogoStore = {
   version: 0,
@@ -19,52 +15,111 @@ const EMPTY_STORE: CwogoStore = {
   guesses: {},
 };
 
-let mutationQueue = Promise.resolve();
-
-async function ensureStoreFile() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-
-  try {
-    await fs.access(STORE_PATH);
-  } catch {
-    await fs.writeFile(STORE_PATH, JSON.stringify(EMPTY_STORE, null, 2), "utf8");
-  }
+declare global {
+  var __cwogoSql: ReturnType<typeof postgres> | undefined;
+  var __cwogoStoreInitPromise: Promise<void> | undefined;
 }
 
-async function readStore() {
-  await ensureStoreFile();
-  const raw = await fs.readFile(STORE_PATH, "utf8");
+function getDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL;
 
-  if (!raw.trim()) {
-    return structuredClone(EMPTY_STORE);
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is not configured. Pull Vercel env vars or set it locally.");
   }
 
-  return JSON.parse(raw) as CwogoStore;
+  return databaseUrl;
 }
 
-async function writeStore(store: CwogoStore) {
-  await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+function getSqlClient() {
+  if (!globalThis.__cwogoSql) {
+    globalThis.__cwogoSql = postgres(getDatabaseUrl(), {
+      connect_timeout: 15,
+      idle_timeout: 20,
+      max: 1,
+      onnotice: () => {},
+      prepare: false,
+    });
+  }
+
+  return globalThis.__cwogoSql;
+}
+
+function normalizeStore(value: Partial<CwogoStore> | string | undefined, version: number) {
+  const parsedValue =
+    typeof value === "string" ? (JSON.parse(value) as Partial<CwogoStore>) : value;
+
+  return {
+    version,
+    rooms: parsedValue?.rooms ?? {},
+    players: parsedValue?.players ?? {},
+    rounds: parsedValue?.rounds ?? {},
+    guesses: parsedValue?.guesses ?? {},
+  } satisfies CwogoStore;
+}
+
+async function ensureStoreRow() {
+  const sql = getSqlClient();
+
+  if (!globalThis.__cwogoStoreInitPromise) {
+    globalThis.__cwogoStoreInitPromise = (async () => {
+      await sql.unsafe(`
+        CREATE TABLE IF NOT EXISTS cwogo_state (
+          id smallint PRIMARY KEY,
+          version bigint NOT NULL DEFAULT 0,
+          data jsonb NOT NULL,
+          updated_at timestamptz NOT NULL DEFAULT now()
+        )
+      `);
+
+      await sql`
+        INSERT INTO cwogo_state (id, version, data)
+        VALUES (1, 0, ${sql.json(EMPTY_STORE)})
+        ON CONFLICT (id) DO NOTHING
+      `;
+    })().catch((error) => {
+      globalThis.__cwogoStoreInitPromise = undefined;
+      throw error;
+    });
+  }
+
+  await globalThis.__cwogoStoreInitPromise;
 }
 
 export async function getStoreSnapshot() {
-  return readStore();
+  const sql = getSqlClient();
+  await ensureStoreRow();
+
+  const rows = await sql<{ version: number; data: Partial<CwogoStore> | string }[]>`
+    SELECT version, data
+    FROM cwogo_state
+    WHERE id = 1
+  `;
+
+  const row = rows[0];
+  return normalizeStore(row?.data, Number(row?.version ?? 0));
 }
 
 export async function withStoreMutation<T>(
   mutator: (store: CwogoStore, ctx: { markDirty: () => void }) => Promise<T> | T,
 ) {
-  const previous = mutationQueue;
-  let release!: () => void;
+  const sql = getSqlClient();
+  await ensureStoreRow();
 
-  mutationQueue = new Promise<void>((resolve) => {
-    release = resolve;
-  });
+  return sql.begin(async (tx) => {
+    const rows = await tx.unsafe<{ version: number; data: Partial<CwogoStore> | string }[]>(
+      `
+        SELECT version, data
+        FROM cwogo_state
+        WHERE id = $1
+        FOR UPDATE
+      `,
+      [1],
+    );
 
-  await previous;
-
-  try {
-    const store = await readStore();
+    const row = rows[0];
+    const store = normalizeStore(row?.data, Number(row?.version ?? 0));
     let dirty = false;
+
     const result = await mutator(store, {
       markDirty: () => {
         dirty = true;
@@ -72,14 +127,26 @@ export async function withStoreMutation<T>(
     });
 
     if (dirty) {
-      store.version += 1;
-      await writeStore(store);
+      const nextVersion = store.version + 1;
+      const nextStore = {
+        ...store,
+        version: nextVersion,
+      } satisfies CwogoStore;
+
+      await tx.unsafe(
+        `
+          UPDATE cwogo_state
+          SET version = $1,
+              data = $2::jsonb,
+              updated_at = now()
+          WHERE id = $3
+        `,
+        [nextVersion, JSON.stringify(nextStore), 1],
+      );
     }
 
     return result;
-  } finally {
-    release();
-  }
+  });
 }
 
 export function listRoomPlayers(store: CwogoStore, roomId: string) {

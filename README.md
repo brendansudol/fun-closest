@@ -13,10 +13,23 @@ Players join a room, submit secret numeric guesses, and the host reveals the rou
 - Opaque cookie sessions for host and players
 - Server-authoritative round lifecycle and scoring
 - Role-aware state responses so guesses stay hidden before reveal
+- Neon Postgres via `DATABASE_URL`
+
+## Database setup
+
+This app now uses a single Postgres database for both local development and Vercel deployments.
+
+The simplest workflow is:
+
+1. Link the repo to Vercel
+2. Provision Neon through the Vercel Marketplace
+3. Pull env vars locally with `vercel env pull .env.local`
+
+The app reads `DATABASE_URL`.
 
 ## Important note
 
-The original spec recommends Neon/Postgres + Drizzle. This repo currently uses a local file-backed store at `.data/cwogo-store.json` so the app can run immediately without external infrastructure.
+The runtime is backed by Postgres now, but the persistence model is still a single transactional store row in Postgres rather than the fully normalized Drizzle schema described in the original spec. That keeps the deployment path simple while preserving server-authoritative behavior.
 
 ## Getting started
 
@@ -29,6 +42,7 @@ pnpm install
 Start the dev server:
 
 ```bash
+vercel env pull .env.local
 pnpm dev
 ```
 
@@ -80,11 +94,9 @@ Then open your machine's LAN IP from the phone.
 
 ## Reset local game data
 
-Stop the server and remove the local store:
+Because state lives in Neon now, resetting data means clearing the database contents rather than deleting a local file.
 
-```bash
-rm -f .data/cwogo-store.json
-```
+At the moment, the app auto-creates one table named `cwogo_state`.
 
 ## Validation
 
