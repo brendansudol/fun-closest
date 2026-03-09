@@ -81,6 +81,7 @@ Reason:
 ## Important operational caveats
 
 - Persistence is now shared through Neon and works for local plus Vercel.
+- Local development and production currently point at the same database by default.
 - The current store uses row-level transactional locking around a JSON store document.
 - This is deployable, but still less expressive than the normalized schema from the spec.
 - There is no rate limiting yet.
@@ -102,6 +103,7 @@ Important:
 - sessions are cookie-based
 - host and player should be tested in separate browser contexts
 - if the same browser context holds both sessions, host behavior can mask player behavior
+- local playtesting writes to the shared Neon database unless `DATABASE_URL` is changed
 
 ## Gaps relative to the original spec
 

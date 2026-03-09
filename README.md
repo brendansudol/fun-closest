@@ -27,6 +27,16 @@ The simplest workflow is:
 
 The app reads `DATABASE_URL`.
 
+## Shared database workflow
+
+Local development and the deployed app both talk to the same Neon database unless you deliberately point `DATABASE_URL` somewhere else.
+
+That means:
+
+- local testing creates real shared room state
+- resetting data affects the deployed app too
+- it is safer to test in disposable rooms than to clear the database casually
+
 ## Important note
 
 The runtime is backed by Postgres now, but the persistence model is still a single transactional store row in Postgres rather than the fully normalized Drizzle schema described in the original spec. That keeps the deployment path simple while preserving server-authoritative behavior.
@@ -92,11 +102,13 @@ pnpm start --hostname 0.0.0.0 --port 3000
 
 Then open your machine's LAN IP from the phone.
 
-## Reset local game data
+## Reset database state
 
-Because state lives in Neon now, resetting data means clearing the database contents rather than deleting a local file.
+Because state lives in Neon now, resetting data means clearing database contents rather than deleting a local file.
 
 At the moment, the app auto-creates one table named `cwogo_state`.
+
+If you need a hard reset, delete rows from that table intentionally against the configured `DATABASE_URL`.
 
 ## Validation
 
