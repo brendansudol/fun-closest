@@ -1,5 +1,6 @@
 import { DEFAULT_ROOM_TITLE, DEFAULT_ROUND_SECONDS } from "./constants";
 import { CwogoError, invariant } from "./errors";
+import { isGameOver } from "./game";
 import { parseGuessInput } from "./parse-guess";
 import { PROMPTS } from "./prompts";
 import { scoreGuessRows } from "./scoring";
@@ -187,7 +188,12 @@ async function finalizeExpiredRound(slug: string) {
   });
 }
 
-export async function createRoom(input: { title: string; defaultPack: Pack; defaultRoundSeconds: number }) {
+export async function createRoom(input: {
+  title: string;
+  defaultPack: Pack;
+  defaultRoundSeconds: number;
+  maxRounds: number | null;
+}) {
   return withStoreMutation((store, { markDirty }) => {
     const roomId = crypto.randomUUID();
     const hostToken = createOpaqueToken();
@@ -201,6 +207,7 @@ export async function createRoom(input: { title: string; defaultPack: Pack; defa
       currentRoundId: null,
       defaultPack: input.defaultPack,
       defaultRoundSeconds: input.defaultRoundSeconds || DEFAULT_ROUND_SECONDS,
+      maxRounds: input.maxRounds,
       createdAt,
       updatedAt: createdAt,
     };
@@ -282,6 +289,7 @@ export async function readRoleAwareRoomState(input: {
 
   const round = getCurrentRound(store, room);
   const players = listRoomPlayers(store, room.id);
+  const rounds = listRoomRounds(store, room.id);
   const guesses = round ? listRoundGuesses(store, round.id) : [];
   const serverNow = nowIso();
 
@@ -290,6 +298,7 @@ export async function readRoleAwareRoomState(input: {
       room,
       roomVersion: store.version,
       round,
+      rounds,
       players,
       guesses,
       serverNow,
@@ -303,6 +312,7 @@ export async function readRoleAwareRoomState(input: {
         room,
         roomVersion: store.version,
         round,
+        rounds,
         players,
         guesses,
         me: player,
@@ -319,18 +329,23 @@ export async function startRound(input: {
   hostToken: string;
   pack: Pack;
   roundSeconds: number;
+  maxRounds: number | null;
   promptId?: string;
 }) {
   return withStoreMutation((store, { markDirty }) => {
     const room = authenticateHost(store, input.slug, input.hostToken);
     const currentRound = getCurrentRound(store, room);
+    const rounds = listRoomRounds(store, room.id);
 
     if (currentRound && currentRound.phase !== "revealed") {
       throw new CwogoError(409, "Finish revealing the current round before starting another.");
     }
 
+    if (isGameOver({ room, roundsPlayed: rounds.length, currentRound })) {
+      throw new CwogoError(409, "This game has reached its round cap. Start a new game to reset the scoreboard.");
+    }
+
     const selectedPrompt = selectPrompt(store, room, input.pack, input.promptId);
-    const rounds = listRoomRounds(store, room.id);
     const currentTime = nowIso();
     const roundId = crypto.randomUUID();
 
@@ -360,6 +375,9 @@ export async function startRound(input: {
     room.currentRoundId = roundId;
     room.defaultPack = input.pack;
     room.defaultRoundSeconds = input.roundSeconds;
+    if (rounds.length === 0) {
+      room.maxRounds = input.maxRounds;
+    }
     room.updatedAt = currentTime;
     markDirty();
 
@@ -398,6 +416,38 @@ export async function revealRound(input: { slug: string; hostToken: string }) {
       room.updatedAt = currentTime;
       markDirty();
     }
+
+    return { ok: true };
+  });
+}
+
+export async function resetGame(input: { slug: string; hostToken: string }) {
+  return withStoreMutation((store, { markDirty }) => {
+    const room = authenticateHost(store, input.slug, input.hostToken);
+    const currentRound = getCurrentRound(store, room);
+
+    if (currentRound && currentRound.phase !== "revealed") {
+      throw new CwogoError(409, "Finish the current round before starting a new game.");
+    }
+
+    const currentTime = nowIso();
+    const roomRounds = listRoomRounds(store, room.id);
+
+    for (const player of listRoomPlayers(store, room.id)) {
+      player.scoreTotal = 0;
+    }
+
+    for (const round of roomRounds) {
+      delete store.rounds[round.id];
+
+      for (const guess of listRoundGuesses(store, round.id)) {
+        delete store.guesses[guess.id];
+      }
+    }
+
+    room.currentRoundId = null;
+    room.updatedAt = currentTime;
+    markDirty();
 
     return { ok: true };
   });

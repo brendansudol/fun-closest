@@ -1,5 +1,6 @@
 import { DEFAULT_ROOM_TITLE } from "./constants";
 import { formatNumericValue } from "./format";
+import { getGameWinnerPlayerIds, getRoomMaxRounds, getRoundsRemaining, isGameOver } from "./game";
 import type {
   CwogoGuessStore,
   CwogoPlayerStore,
@@ -20,7 +21,31 @@ function buildRoomMeta(room: CwogoRoomStore, roomVersion: number) {
     joinPath: `/cwogo/join/${room.joinCode}`,
     defaultPack: room.defaultPack,
     defaultRoundSeconds: room.defaultRoundSeconds,
+    maxRounds: getRoomMaxRounds(room),
     roomVersion,
+  };
+}
+
+function buildGameSummary(input: {
+  room: CwogoRoomStore;
+  round: CwogoRoundStore | null;
+  rounds: CwogoRoundStore[];
+  players: CwogoPlayerStore[];
+}) {
+  const maxRounds = getRoomMaxRounds(input.room);
+  const roundsPlayed = input.rounds.length;
+  const gameOver = isGameOver({
+    room: input.room,
+    roundsPlayed,
+    currentRound: input.round,
+  });
+
+  return {
+    maxRounds,
+    roundsPlayed,
+    roundsRemaining: getRoundsRemaining(maxRounds, roundsPlayed),
+    isGameOver: gameOver,
+    winnerPlayerIds: gameOver ? getGameWinnerPlayerIds(input.players) : [],
   };
 }
 
@@ -136,11 +161,13 @@ export function serializeHostState(input: {
   room: CwogoRoomStore;
   roomVersion: number;
   round: CwogoRoundStore | null;
+  rounds: CwogoRoundStore[];
   players: CwogoPlayerStore[];
   guesses: CwogoGuessStore[];
   serverNow: string;
 }) {
   const submittedPlayerIds = new Set(input.guesses.map((guess) => guess.playerId));
+  const game = buildGameSummary(input);
 
   const players = input.players.map((player) => ({
     id: player.id,
@@ -153,10 +180,11 @@ export function serializeHostState(input: {
   return {
     role: "host",
     room: buildRoomMeta(input.room, input.roomVersion),
+    game,
     players,
     scoreboard: buildScoreboard(input.players),
     currentRound: buildRoundSummary(input.round, input.players, input.guesses, input.serverNow),
-    canStartRound: !input.round || input.round.phase === "revealed",
+    canStartRound: (!input.round || input.round.phase === "revealed") && !game.isGameOver,
   } satisfies HostRoomState;
 }
 
@@ -164,16 +192,19 @@ export function serializePlayerState(input: {
   room: CwogoRoomStore;
   roomVersion: number;
   round: CwogoRoundStore | null;
+  rounds: CwogoRoundStore[];
   players: CwogoPlayerStore[];
   guesses: CwogoGuessStore[];
   me: CwogoPlayerStore;
   serverNow: string;
 }) {
   const myGuess = input.guesses.find((guess) => guess.playerId === input.me.id) ?? null;
+  const game = buildGameSummary(input);
 
   return {
     role: "player",
     room: buildRoomMeta(input.room, input.roomVersion),
+    game,
     me: {
       id: input.me.id,
       displayName: input.me.displayName,
@@ -195,6 +226,6 @@ export function serializePlayerState(input: {
           updatedAt: myGuess.updatedAt,
         }
       : null,
-    canStartRound: !input.round || input.round.phase === "revealed",
+    canStartRound: (!input.round || input.round.phase === "revealed") && !game.isGameOver,
   } satisfies PlayerRoomState;
 }

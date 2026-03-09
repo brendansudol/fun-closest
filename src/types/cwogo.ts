@@ -26,6 +26,7 @@ export type CwogoRoomStore = {
   currentRoundId: string | null;
   defaultPack: Pack;
   defaultRoundSeconds: number;
+  maxRounds: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -168,7 +169,15 @@ export type HostRoomState = {
     joinPath: string;
     defaultPack: Pack;
     defaultRoundSeconds: number;
+    maxRounds: number | null;
     roomVersion: number;
+  };
+  game: {
+    maxRounds: number | null;
+    roundsPlayed: number;
+    roundsRemaining: number | null;
+    isGameOver: boolean;
+    winnerPlayerIds: string[];
   };
   players: HostPlayerSummary[];
   scoreboard: ScoreboardEntry[];
@@ -185,7 +194,15 @@ export type PlayerRoomState = {
     joinPath: string;
     defaultPack: Pack;
     defaultRoundSeconds: number;
+    maxRounds: number | null;
     roomVersion: number;
+  };
+  game: {
+    maxRounds: number | null;
+    roundsPlayed: number;
+    roundsRemaining: number | null;
+    isGameOver: boolean;
+    winnerPlayerIds: string[];
   };
   me: {
     id: string;

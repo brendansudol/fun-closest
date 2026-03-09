@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { startRound } from "@/lib/cwogo/actions";
 import { handleRouteError } from "@/lib/cwogo/http";
+import { resetGame } from "@/lib/cwogo/actions";
 import { getHostCookieToken } from "@/lib/cwogo/session";
-import { startRoundSchema } from "@/lib/cwogo/validations";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
@@ -18,16 +17,7 @@ export async function POST(
       return NextResponse.json({ error: "Host session required." }, { status: 401 });
     }
 
-    const payload = startRoundSchema.parse(await request.json());
-    const result = await startRound({
-      slug,
-      hostToken,
-      pack: payload.pack,
-      roundSeconds: payload.roundSeconds,
-      maxRounds: payload.maxRounds,
-      promptId: payload.promptId,
-    });
-
+    const result = await resetGame({ slug, hostToken });
     return NextResponse.json(result);
   } catch (error) {
     return handleRouteError(error);

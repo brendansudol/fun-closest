@@ -9,9 +9,24 @@ import { formatCountdownLabel, formatPackLabel } from "@/lib/cwogo/format";
 import { usePlayerRoomState } from "@/hooks/use-player-room-state";
 import { useRoomCountdown } from "@/hooks/use-room-countdown";
 import { useSubmitGuess } from "@/hooks/use-submit-guess";
+import type { PlayerRoomState } from "@/types/cwogo";
 
 function StatusBanner({ children }: { children: React.ReactNode }) {
   return <div className="rounded-[1.75rem] border border-line bg-white/60 px-5 py-4 text-sm leading-7 text-muted">{children}</div>;
+}
+
+function formatGameLengthLabel(maxRounds: number | null) {
+  return maxRounds === null ? "Unlimited game" : `${maxRounds} rounds`;
+}
+
+function getWinnerLabel(data: PlayerRoomState) {
+  const winners = data.scoreboard.filter((entry) => data.game.winnerPlayerIds.includes(entry.playerId));
+
+  if (winners.length === 0) {
+    return null;
+  }
+
+  return winners.map((winner) => (winner.isMe ? `${winner.displayName} (you)` : winner.displayName)).join(", ");
 }
 
 export function PlayerRoomScreen({ slug }: { slug: string }) {
@@ -45,6 +60,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
 
   const round = roomData.currentRound;
   const draftGuess = round ? draftGuessesByRound[round.id] ?? roomData.myGuess?.guessRaw ?? "" : "";
+  const winnerLabel = roomData.game.isGameOver ? getWinnerLabel(roomData) : null;
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
@@ -72,7 +88,8 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
             Hang tight. The next prompt will appear here as soon as the round starts.
           </p>
           <StatusBanner>
-            Your score carries between rounds. Refreshing is fine because the server keeps your room session.
+            Your score carries between rounds and resets when the host starts a new game. Refreshing is fine because
+            the server keeps your room session.
           </StatusBanner>
         </section>
       ) : null}
@@ -87,6 +104,9 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
                 </span>
                 <span className="rounded-full border border-foreground/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-foreground">
                   {formatPackLabel(round.pack)}
+                </span>
+                <span className="rounded-full border border-foreground/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-foreground">
+                  {formatGameLengthLabel(roomData.game.maxRounds)}
                 </span>
               </div>
               <h2 className="mt-4 font-serif text-4xl text-foreground sm:text-5xl">{round.promptText}</h2>
@@ -182,6 +202,20 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
 
           {round.phase === "revealed" && round.results ? (
             <div className="mt-8 grid gap-6">
+              {roomData.game.isGameOver ? (
+                <div className="rounded-[1.75rem] border border-winner/30 bg-winner/10 p-5">
+                  <p className="text-xs uppercase tracking-[0.24em] text-muted">Game over</p>
+                  <h3 className="mt-2 font-serif text-3xl text-foreground">
+                    {winnerLabel
+                      ? `${winnerLabel} ${roomData.game.winnerPlayerIds.length === 1 ? "wins" : "win"} the game.`
+                      : "Game ended without a winner."}
+                  </h3>
+                  <p className="mt-3 text-lg text-muted">
+                    Final score after {roomData.game.maxRounds} rounds. Waiting for the host to start a new game.
+                  </p>
+                </div>
+              ) : null}
+
               <div className="rounded-[1.75rem] border border-line bg-white/55 p-5">
                 <p className="text-xs uppercase tracking-[0.24em] text-muted">Result</p>
                 <h3 className="mt-2 font-serif text-3xl text-foreground">

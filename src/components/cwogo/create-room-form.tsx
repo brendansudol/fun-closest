@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PACK_OPTIONS } from "@/lib/cwogo/constants";
+import { PACK_OPTIONS, ROUND_CAP_OPTIONS, ROUND_LENGTH_OPTIONS } from "@/lib/cwogo/constants";
 import { requestJson } from "@/lib/cwogo/fetcher";
 import type { Pack } from "@/types/cwogo";
 
@@ -19,6 +19,7 @@ export function CreateRoomForm() {
   const [joinCode, setJoinCode] = useState("");
   const [defaultPack, setDefaultPack] = useState<Pack>("mixed");
   const [defaultRoundSeconds, setDefaultRoundSeconds] = useState(25);
+  const [maxRounds, setMaxRounds] = useState<number | null>(null);
 
   const createRoomMutation = useMutation({
     mutationFn: () =>
@@ -28,12 +29,15 @@ export function CreateRoomForm() {
           title,
           defaultPack,
           defaultRoundSeconds,
+          maxRounds,
         }),
       }),
     onSuccess: (payload) => {
       router.push(payload.hostUrl);
     },
   });
+
+  const roundCapValue = maxRounds === null ? "unlimited" : String(maxRounds);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -66,7 +70,7 @@ export function CreateRoomForm() {
             />
           </label>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-5 md:grid-cols-3">
             <label className="grid gap-2">
               <span className="text-sm font-semibold text-foreground">Prompt pack</span>
               <select
@@ -89,9 +93,24 @@ export function CreateRoomForm() {
                 onChange={(event) => setDefaultRoundSeconds(Number(event.target.value))}
                 className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
               >
-                {[15, 20, 25, 30, 45, 60].map((seconds) => (
+                {ROUND_LENGTH_OPTIONS.map((seconds) => (
                   <option key={seconds} value={seconds}>
                     {seconds} seconds
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-foreground">Game length</span>
+              <select
+                value={roundCapValue}
+                onChange={(event) => setMaxRounds(event.target.value === "unlimited" ? null : Number(event.target.value))}
+                className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
+              >
+                {ROUND_CAP_OPTIONS.map((option) => (
+                  <option key={option.label} value={option.value === null ? "unlimited" : option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>

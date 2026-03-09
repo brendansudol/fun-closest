@@ -6,7 +6,7 @@ import { useState } from "react";
 import { QrJoinCard } from "./qr-join-card";
 import { ResultNumberLine } from "./result-number-line";
 import { Scoreboard } from "./scoreboard";
-import { PACK_OPTIONS } from "@/lib/cwogo/constants";
+import { PACK_OPTIONS, ROUND_CAP_OPTIONS, ROUND_LENGTH_OPTIONS } from "@/lib/cwogo/constants";
 import { requestJson } from "@/lib/cwogo/fetcher";
 import { formatCountdownLabel, formatPackLabel } from "@/lib/cwogo/format";
 import { useHostRoomState } from "@/hooks/use-host-room-state";
@@ -24,6 +24,20 @@ function StatusPill({ label, tone = "neutral" }: { label: string; tone?: "neutra
           : "border-foreground/10 bg-white/70 text-foreground";
 
   return <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${toneClass}`}>{label}</span>;
+}
+
+function formatGameLengthLabel(maxRounds: number | null) {
+  return maxRounds === null ? "Unlimited game" : `${maxRounds} rounds`;
+}
+
+function getWinnerLabel(data: HostRoomState) {
+  const winners = data.scoreboard.filter((entry) => data.game.winnerPlayerIds.includes(entry.playerId));
+
+  if (winners.length === 0) {
+    return null;
+  }
+
+  return winners.map((winner) => winner.displayName).join(", ");
 }
 
 function RosterList({ data }: { data: HostRoomState }) {
@@ -59,27 +73,37 @@ function HostRoundBody({
   setSelectedPack,
   roundSeconds,
   setRoundSeconds,
+  maxRounds,
+  setMaxRounds,
   onStart,
   onLock,
   onReveal,
+  onReset,
   startPending,
   lockPending,
   revealPending,
+  resetPending,
 }: {
   data: HostRoomState;
   selectedPack: Pack;
   setSelectedPack: (value: Pack) => void;
   roundSeconds: number;
   setRoundSeconds: (value: number) => void;
+  maxRounds: number | null;
+  setMaxRounds: (value: number | null) => void;
   onStart: () => void;
   onLock: () => void;
   onReveal: () => void;
+  onReset: () => void;
   startPending: boolean;
   lockPending: boolean;
   revealPending: boolean;
+  resetPending: boolean;
 }) {
   const round = data.currentRound;
   const secondsRemaining = useRoomCountdown(round?.locksAt, round?.serverNow);
+  const roundCapValue = maxRounds === null ? "unlimited" : String(maxRounds);
+  const winnerLabel = data.game.isGameOver ? getWinnerLabel(data) : null;
 
   if (!round) {
     return (
@@ -95,7 +119,7 @@ function HostRoundBody({
           <StatusPill label={`${data.players.length} players`} tone="cool" />
         </div>
 
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
           <label className="grid gap-2">
             <span className="text-sm font-semibold text-foreground">Pack</span>
             <select
@@ -118,9 +142,24 @@ function HostRoundBody({
               onChange={(event) => setRoundSeconds(Number(event.target.value))}
               className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
             >
-              {[15, 20, 25, 30, 45, 60].map((seconds) => (
+              {ROUND_LENGTH_OPTIONS.map((seconds) => (
                 <option key={seconds} value={seconds}>
                   {seconds} seconds
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-foreground">Game length</span>
+            <select
+              value={roundCapValue}
+              onChange={(event) => setMaxRounds(event.target.value === "unlimited" ? null : Number(event.target.value))}
+              className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
+            >
+              {ROUND_CAP_OPTIONS.map((option) => (
+                <option key={option.label} value={option.value === null ? "unlimited" : option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -146,6 +185,7 @@ function HostRoundBody({
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill label={`Round ${round.roundNumber}`} tone="cool" />
             <StatusPill label={formatPackLabel(round.pack)} />
+            <StatusPill label={formatGameLengthLabel(data.game.maxRounds)} />
             <StatusPill
               label={round.phase === "open" ? "Collecting guesses" : round.phase === "locked" ? "Locked" : "Revealed"}
               tone={round.phase === "revealed" ? "winner" : round.phase === "locked" ? "cool" : "neutral"}
@@ -178,6 +218,17 @@ function HostRoundBody({
         </div>
 
         <div className="grid gap-4">
+          {round.phase === "revealed" && data.game.isGameOver ? (
+            <button
+              type="button"
+              onClick={onReset}
+              disabled={resetPending}
+              className="inline-flex min-h-14 items-center justify-center rounded-full bg-accent px-6 text-lg font-semibold text-white shadow-[0_16px_30px_rgba(239,109,68,0.32)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {resetPending ? "Resetting..." : "New game"}
+            </button>
+          ) : null}
+
           {round.phase === "open" ? (
             <button
               type="button"
@@ -200,7 +251,7 @@ function HostRoundBody({
             </button>
           ) : null}
 
-          {round.phase === "revealed" ? (
+          {round.phase === "revealed" && !data.game.isGameOver ? (
             <button
               type="button"
               onClick={onStart}
@@ -209,17 +260,32 @@ function HostRoundBody({
             >
               {startPending ? "Starting..." : "Next round"}
             </button>
-          ) : (
+          ) : round.phase !== "revealed" ? (
             <div className="rounded-[1.75rem] border border-line bg-white/55 p-5 text-sm leading-7 text-muted">
               The host only sees submission status before reveal. Guess values stay hidden until the round is scored and
               revealed.
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
       {round.phase === "revealed" && round.results ? (
         <div className="mt-8 grid gap-6">
+          {data.game.isGameOver ? (
+            <div className="rounded-[1.75rem] border border-winner/30 bg-winner/10 p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-muted">Game over</p>
+              <h3 className="mt-2 font-serif text-3xl text-foreground">
+                {winnerLabel
+                  ? `${winnerLabel} ${data.game.winnerPlayerIds.length === 1 ? "wins" : "win"} the game.`
+                  : "Game ended without a winner."}
+              </h3>
+              <p className="mt-3 text-lg text-muted">
+                Final score after {data.game.maxRounds} rounds. Start a new game to reset the scoreboard and replay
+                with the same room.
+              </p>
+            </div>
+          ) : null}
+
           <div className="rounded-[1.75rem] border border-line bg-white/55 p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-muted">Outcome</p>
             <h3 className="mt-2 font-serif text-3xl text-foreground">
@@ -278,10 +344,13 @@ export function HostRoomScreen({ slug }: { slug: string }) {
   const roomQuery = useHostRoomState(slug);
   const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
   const [roundSeconds, setRoundSeconds] = useState<number | null>(null);
+  const [maxRounds, setMaxRounds] = useState<number | null | undefined>(undefined);
   const defaultPack = roomQuery.data?.room.defaultPack ?? "mixed";
   const defaultRoundSeconds = roomQuery.data?.room.defaultRoundSeconds ?? 25;
+  const defaultMaxRounds = roomQuery.data?.room.maxRounds ?? null;
   const activePack = selectedPack ?? defaultPack;
   const activeRoundSeconds = roundSeconds ?? defaultRoundSeconds;
+  const activeMaxRounds = maxRounds === undefined ? defaultMaxRounds : maxRounds;
 
   const startMutation = useMutation({
     mutationFn: () =>
@@ -290,6 +359,7 @@ export function HostRoomScreen({ slug }: { slug: string }) {
         body: JSON.stringify({
           pack: activePack,
           roundSeconds: activeRoundSeconds,
+          maxRounds: activeMaxRounds,
         }),
       }),
     onSuccess: async () => {
@@ -317,10 +387,21 @@ export function HostRoomScreen({ slug }: { slug: string }) {
     },
   });
 
+  const resetMutation = useMutation({
+    mutationFn: () =>
+      requestJson(`/api/cwogo/rooms/${slug}/host/reset`, {
+        method: "POST",
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["cwogo", "host-room", slug] });
+    },
+  });
+
   const activeError =
     (startMutation.isError && startMutation.error.message) ||
     (lockMutation.isError && lockMutation.error.message) ||
     (revealMutation.isError && revealMutation.error.message) ||
+    (resetMutation.isError && resetMutation.error.message) ||
     null;
 
   if (roomQuery.isPending) {
@@ -371,12 +452,16 @@ export function HostRoomScreen({ slug }: { slug: string }) {
           setSelectedPack={setSelectedPack}
           roundSeconds={activeRoundSeconds}
           setRoundSeconds={setRoundSeconds}
+          maxRounds={activeMaxRounds}
+          setMaxRounds={setMaxRounds}
           onStart={() => startMutation.mutate()}
           onLock={() => lockMutation.mutate()}
           onReveal={() => revealMutation.mutate()}
+          onReset={() => resetMutation.mutate()}
           startPending={startMutation.isPending}
           lockPending={lockMutation.isPending}
           revealPending={revealMutation.isPending}
+          resetPending={resetMutation.isPending}
         />
 
         {activeError ? (
