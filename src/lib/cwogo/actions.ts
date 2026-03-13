@@ -74,6 +74,10 @@ function listUsedPromptIdsForRoom(store: Awaited<ReturnType<typeof getStoreSnaps
   return new Set(listRoomRounds(store, roomId).map((round) => round.promptId));
 }
 
+function getMostRecentPromptIdForRoom(store: Awaited<ReturnType<typeof getStoreSnapshot>>, roomId: string) {
+  return listRoomRounds(store, roomId).at(-1)?.promptId ?? null;
+}
+
 function selectPrompt(
   store: Awaited<ReturnType<typeof getStoreSnapshot>>,
   room: CwogoRoomStore,
@@ -92,7 +96,12 @@ function selectPrompt(
 
   const usedPromptIds = listUsedPromptIdsForRoom(store, room.id);
   const availablePrompts = pool.filter((prompt) => !usedPromptIds.has(prompt.id));
-  const selectionPool = availablePrompts.length > 0 ? availablePrompts : pool;
+  const lastPromptId = getMostRecentPromptIdForRoom(store, room.id);
+  const recycledPool =
+    availablePrompts.length === 0 && lastPromptId && pool.length > 1
+      ? pool.filter((prompt) => prompt.id !== lastPromptId)
+      : pool;
+  const selectionPool = availablePrompts.length > 0 ? availablePrompts : recycledPool;
 
   return selectionPool[Math.floor(Math.random() * selectionPool.length)];
 }
