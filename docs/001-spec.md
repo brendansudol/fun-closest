@@ -754,8 +754,8 @@ No heavy chart library needed.
 ### Scale
 
 For v1:
-- `min = 0`
-- `max = max(actual, highest_guess) * 1.1`
+- `min = max(0, floor(min(actual, lowest_guess) * 0.9))`
+- `max = ceil(max(actual, highest_guess) * 1.1)`
 
 This is simple and understandable.
 
@@ -1181,4 +1181,3 @@ If I were handing this to an implementation agent today, I would ask it to build
 And I would explicitly tell it:
 
 > Do not use Liveblocks for guesses. Do not implement WebSockets on Vercel. Build the hidden-guess multiplayer flow with Postgres + polling first. Make it solid, then consider Ably later.
-

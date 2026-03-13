@@ -1,3 +1,4 @@
+import { formatNumericValue } from "@/lib/cwogo/format";
 import type { RevealedGuess } from "@/types/cwogo";
 
 function lanePosition(index: number, bust: boolean) {
@@ -6,6 +7,21 @@ function lanePosition(index: number, bust: boolean) {
   }
 
   return 108 - (index % 2) * 20;
+}
+
+export function getResultNumberLineDomain(
+  actualValue: number,
+  results: Array<Pick<RevealedGuess, "guessNumeric">>,
+) {
+  const minGuess = results.reduce((lowest, result) => Math.min(lowest, result.guessNumeric), actualValue);
+  const maxGuess = results.reduce((highest, result) => Math.max(highest, result.guessNumeric), actualValue);
+  const minValue = Math.max(0, Math.floor(minGuess * 0.9));
+  const maxValue = Math.max(minValue + 1, Math.ceil(maxGuess * 1.1));
+
+  return {
+    minValue,
+    maxValue,
+  };
 }
 
 export function ResultNumberLine({
@@ -17,11 +33,11 @@ export function ResultNumberLine({
   answerDisplay: string;
   results: RevealedGuess[];
 }) {
-  const maxGuess = results.reduce((highest, result) => Math.max(highest, result.guessNumeric), actualValue);
-  const maxValue = Math.max(1, Math.ceil(maxGuess * 1.1));
+  const { minValue, maxValue } = getResultNumberLineDomain(actualValue, results);
   const underResults = results.filter((result) => !result.isBust);
   const bustResults = results.filter((result) => result.isBust);
   const lanes = new Map<string, number>();
+  const scaleSpan = maxValue - minValue;
 
   underResults.forEach((result, index) => {
     lanes.set(result.playerId, lanePosition(index, false));
@@ -31,7 +47,7 @@ export function ResultNumberLine({
     lanes.set(result.playerId, lanePosition(index, true));
   });
 
-  const position = (value: number) => 60 + (value / maxValue) * 880;
+  const position = (value: number) => 60 + ((value - minValue) / scaleSpan) * 880;
   const actualX = position(actualValue);
 
   return (
@@ -54,10 +70,10 @@ export function ResultNumberLine({
         </text>
 
         <text x="60" y="196" className="fill-[var(--muted)] text-[12px] font-medium">
-          0
+          {formatNumericValue(minValue)}
         </text>
         <text x="940" y="196" textAnchor="end" className="fill-[var(--muted)] text-[12px] font-medium">
-          {maxValue.toLocaleString()}
+          {formatNumericValue(maxValue)}
         </text>
 
         {results.map((result) => {
