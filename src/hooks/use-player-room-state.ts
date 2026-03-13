@@ -4,27 +4,39 @@ import { useQuery } from "@tanstack/react-query";
 import { requestJson } from "@/lib/cwogo/fetcher";
 import type { PlayerRoomState } from "@/types/cwogo";
 
+const ERROR_POLL_MS = 30_000;
+const LOBBY_POLL_MS = 15_000;
+const OPEN_ROUND_POLL_MS = 3_000;
+const SUBMITTED_ROUND_POLL_MS = 5_000;
+const LOCKED_ROUND_POLL_MS = 2_000;
+const REVEALED_ROUND_POLL_MS = 6_000;
+
 export function usePlayerRoomState(slug: string) {
   return useQuery({
     queryKey: ["cwogo", "player-room", slug],
     queryFn: () => requestJson<PlayerRoomState>(`/api/cwogo/rooms/${slug}/state`),
+    retry: false,
     refetchInterval: (query) => {
+      if (query.state.error) {
+        return ERROR_POLL_MS;
+      }
+
       const data = query.state.data as PlayerRoomState | undefined;
 
       if (!data?.currentRound) {
-        return 3_000;
+        return LOBBY_POLL_MS;
       }
 
       if (data.currentRound.phase === "revealed") {
-        return 3_000;
+        return REVEALED_ROUND_POLL_MS;
       }
 
       if (data.currentRound.phase === "locked") {
-        return 1_000;
+        return LOCKED_ROUND_POLL_MS;
       }
 
-      return data.myGuess ? 1_500 : 1_000;
+      return data.myGuess ? SUBMITTED_ROUND_POLL_MS : OPEN_ROUND_POLL_MS;
     },
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
   });
 }

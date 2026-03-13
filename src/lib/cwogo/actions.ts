@@ -24,6 +24,8 @@ import { hashOpaqueToken, createOpaqueToken } from "./session";
 import { serializeHostState, serializePlayerState } from "./serializers";
 import type { CwogoRoomStore, Pack, RoomStateResponse } from "@/types/cwogo";
 
+type StoreSnapshot = Awaited<ReturnType<typeof getStoreSnapshot>>;
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -42,7 +44,7 @@ function randomChars(alphabet: string, size: number) {
   return value;
 }
 
-function createRoomSlug(store: Awaited<ReturnType<typeof getStoreSnapshot>>) {
+function createRoomSlug(store: StoreSnapshot) {
   let slug = randomChars("abcdefghjkmnpqrstuvwxyz23456789", 8);
 
   while (findRoomBySlug(store, slug)) {
@@ -52,7 +54,7 @@ function createRoomSlug(store: Awaited<ReturnType<typeof getStoreSnapshot>>) {
   return slug;
 }
 
-function createJoinCode(store: Awaited<ReturnType<typeof getStoreSnapshot>>) {
+function createJoinCode(store: StoreSnapshot) {
   let joinCode = randomChars("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
 
   while (findRoomByJoinCode(store, joinCode)) {
@@ -70,20 +72,15 @@ function buildPromptPool(pack: Pack) {
   return PROMPTS.filter((prompt) => prompt.pack === pack);
 }
 
-function listUsedPromptIdsForRoom(store: Awaited<ReturnType<typeof getStoreSnapshot>>, roomId: string) {
+function listUsedPromptIdsForRoom(store: StoreSnapshot, roomId: string) {
   return new Set(listRoomRounds(store, roomId).map((round) => round.promptId));
 }
 
-function getMostRecentPromptIdForRoom(store: Awaited<ReturnType<typeof getStoreSnapshot>>, roomId: string) {
+function getMostRecentPromptIdForRoom(store: StoreSnapshot, roomId: string) {
   return listRoomRounds(store, roomId).at(-1)?.promptId ?? null;
 }
 
-function selectPrompt(
-  store: Awaited<ReturnType<typeof getStoreSnapshot>>,
-  room: CwogoRoomStore,
-  pack: Pack,
-  promptId?: string,
-) {
+function selectPrompt(store: StoreSnapshot, room: CwogoRoomStore, pack: Pack, promptId?: string) {
   const pool = buildPromptPool(pack);
 
   invariant(pool.length > 0, "No prompts are available for that pack.", 400);
@@ -106,24 +103,20 @@ function selectPrompt(
   return selectionPool[Math.floor(Math.random() * selectionPool.length)];
 }
 
-function authenticateHost(store: Awaited<ReturnType<typeof getStoreSnapshot>>, slug: string, token: string) {
+function authenticateHost(store: StoreSnapshot, slug: string, token: string) {
   const room = findRoomBySlug(store, slug);
   invariant(room, "Room not found.", 404);
   invariant(room.adminTokenHash === hashOpaqueToken(token), "Host session required.", 401);
   return room;
 }
 
-function authenticatePlayer(store: Awaited<ReturnType<typeof getStoreSnapshot>>, roomId: string, token: string) {
+function authenticatePlayer(store: StoreSnapshot, roomId: string, token: string) {
   const player = findPlayerByTokenHash(store, roomId, hashOpaqueToken(token));
   invariant(player, "Player session required.", 401);
   return player;
 }
 
-function lockAndScoreRound(
-  store: Awaited<ReturnType<typeof getStoreSnapshot>>,
-  room: CwogoRoomStore,
-  currentTime: string,
-) {
+function lockAndScoreRound(store: StoreSnapshot, room: CwogoRoomStore, currentTime: string) {
   const round = getCurrentRound(store, room);
 
   if (!round) {
@@ -173,28 +166,58 @@ function lockAndScoreRound(
   return changed;
 }
 
-async function finalizeExpiredRound(slug: string) {
-  await withStoreMutation((store, { markDirty }) => {
-    const room = findRoomBySlug(store, slug);
+function hasExpiredOpenRound(roundLocksAt: string, currentTimeMs: number) {
+  return currentTimeMs >= new Date(roundLocksAt).getTime();
+}
 
-    if (!room) {
-      return;
-    }
+function buildRoleAwareRoomState(
+  store: StoreSnapshot,
+  input: {
+    slug: string;
+    hostToken?: string | null;
+    playerToken?: string | null;
+    serverNow?: string;
+  },
+): RoomStateResponse {
+  const room = findRoomBySlug(store, input.slug);
 
-    const round = getCurrentRound(store, room);
-    if (!round || round.phase !== "open") {
-      return;
-    }
+  invariant(room, "Room not found.", 404);
 
-    if (Date.now() < new Date(round.locksAt).getTime()) {
-      return;
-    }
+  const round = getCurrentRound(store, room);
+  const players = listRoomPlayers(store, room.id);
+  const rounds = listRoomRounds(store, room.id);
+  const guesses = round ? listRoundGuesses(store, round.id) : [];
+  const serverNow = input.serverNow ?? nowIso();
 
-    const didChange = lockAndScoreRound(store, room, nowIso());
-    if (didChange) {
-      markDirty();
+  if (input.hostToken && room.adminTokenHash === hashOpaqueToken(input.hostToken)) {
+    return serializeHostState({
+      room,
+      roomVersion: store.version,
+      round,
+      rounds,
+      players,
+      guesses,
+      serverNow,
+    });
+  }
+
+  if (input.playerToken) {
+    const player = findPlayerByTokenHash(store, room.id, hashOpaqueToken(input.playerToken));
+    if (player) {
+      return serializePlayerState({
+        room,
+        roomVersion: store.version,
+        round,
+        rounds,
+        players,
+        guesses,
+        me: player,
+        serverNow,
+      });
     }
-  });
+  }
+
+  throw new CwogoError(401, "A valid room session is required.");
 }
 
 export async function createRoom(input: {
@@ -290,47 +313,38 @@ export async function readRoleAwareRoomState(input: {
   hostToken?: string | null;
   playerToken?: string | null;
 }): Promise<RoomStateResponse> {
-  await finalizeExpiredRound(input.slug);
   const store = await getStoreSnapshot();
   const room = findRoomBySlug(store, input.slug);
 
   invariant(room, "Room not found.", 404);
 
   const round = getCurrentRound(store, room);
-  const players = listRoomPlayers(store, room.id);
-  const rounds = listRoomRounds(store, room.id);
-  const guesses = round ? listRoundGuesses(store, round.id) : [];
-  const serverNow = nowIso();
+  const currentTimeMs = Date.now();
 
-  if (input.hostToken && room.adminTokenHash === hashOpaqueToken(input.hostToken)) {
-    return serializeHostState({
-      room,
-      roomVersion: store.version,
-      round,
-      rounds,
-      players,
-      guesses,
-      serverNow,
+  if (round?.phase === "open" && hasExpiredOpenRound(round.locksAt, currentTimeMs)) {
+    return withStoreMutation((mutableStore, { markDirty }) => {
+      const mutableRoom = findRoomBySlug(mutableStore, input.slug);
+
+      invariant(mutableRoom, "Room not found.", 404);
+
+      const mutableRound = getCurrentRound(mutableStore, mutableRoom);
+      const currentTime = nowIso();
+
+      if (mutableRound?.phase === "open" && hasExpiredOpenRound(mutableRound.locksAt, Date.now())) {
+        const didChange = lockAndScoreRound(mutableStore, mutableRoom, currentTime);
+        if (didChange) {
+          markDirty();
+        }
+      }
+
+      return buildRoleAwareRoomState(mutableStore, {
+        ...input,
+        serverNow: currentTime,
+      });
     });
   }
 
-  if (input.playerToken) {
-    const player = findPlayerByTokenHash(store, room.id, hashOpaqueToken(input.playerToken));
-    if (player) {
-      return serializePlayerState({
-        room,
-        roomVersion: store.version,
-        round,
-        rounds,
-        players,
-        guesses,
-        me: player,
-        serverNow,
-      });
-    }
-  }
-
-  throw new CwogoError(401, "A valid room session is required.");
+  return buildRoleAwareRoomState(store, input);
 }
 
 export async function startRound(input: {
