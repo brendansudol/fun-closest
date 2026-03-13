@@ -9,6 +9,7 @@ import { Scoreboard } from "./scoreboard";
 import { PACK_OPTIONS, ROUND_CAP_OPTIONS, ROUND_LENGTH_OPTIONS } from "@/lib/cwogo/constants";
 import { requestJson } from "@/lib/cwogo/fetcher";
 import { formatCountdownLabel, formatPackLabel } from "@/lib/cwogo/format";
+import { buildRoundScoringSummary, formatPointsAwarded, getResultBadgeLabel, getResultTone } from "@/lib/cwogo/results";
 import { useHostRoomState } from "@/hooks/use-host-room-state";
 import { useRoomCountdown } from "@/hooks/use-room-countdown";
 import type { HostRoomState, Pack } from "@/types/cwogo";
@@ -104,6 +105,7 @@ function HostRoundBody({
   const secondsRemaining = useRoomCountdown(round?.locksAt, round?.serverNow);
   const roundCapValue = maxRounds === null ? "unlimited" : String(maxRounds);
   const winnerLabel = data.game.isGameOver ? getWinnerLabel(data) : null;
+  const scoringSummary = round?.results ? buildRoundScoringSummary(round.results.revealedGuesses) : null;
 
   if (!round) {
     return (
@@ -287,18 +289,16 @@ function HostRoundBody({
           ) : null}
 
           <div className="rounded-[1.75rem] border border-line bg-white/55 p-5">
-            <p className="text-xs uppercase tracking-[0.24em] text-muted">Outcome</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-muted">Scoring</p>
             <h3 className="mt-2 font-serif text-3xl text-foreground">
               {round.results.revealedGuesses.length === 0
                 ? "No submissions this round."
                 : round.results.noWinner
-                  ? "No winner this round."
-                  : `${round.results.revealedGuesses
-                      .filter((guess) => guess.isWinner)
-                      .map((guess) => guess.displayName)
-                      .join(", ")} win${round.results.winnerPlayerIds.length > 1 ? "" : "s"}.`}
+                  ? "Everybody went over."
+                  : "Scoring this round"}
             </h3>
-            <p className="mt-3 text-lg text-muted">Answer: {round.results.answerDisplay}</p>
+            {scoringSummary ? <p className="mt-3 text-lg text-muted">{scoringSummary}</p> : null}
+            <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-lg text-muted`}>Answer: {round.results.answerDisplay}</p>
           </div>
 
           <ResultNumberLine
@@ -316,6 +316,8 @@ function HostRoundBody({
                   className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${
                     result.isWinner
                       ? "border-winner/30 bg-winner/10"
+                      : result.pointsAwarded > 0
+                        ? "border-accent-cool/30 bg-accent-cool/10"
                       : result.isBust
                         ? "border-bust/30 bg-bust/10"
                         : "border-line bg-white/60"
@@ -325,10 +327,12 @@ function HostRoundBody({
                     <p className="text-lg font-semibold text-foreground">{result.displayName}</p>
                     <p className="text-sm text-muted">Guess: {result.guessDisplay}</p>
                   </div>
-                  <StatusPill
-                    label={result.status}
-                    tone={result.isWinner ? "winner" : result.isBust ? "bust" : "cool"}
-                  />
+                  <div className="flex items-center gap-3">
+                    {result.pointsAwarded > 0 ? (
+                      <p className="text-lg font-semibold text-foreground">{formatPointsAwarded(result.pointsAwarded)}</p>
+                    ) : null}
+                    <StatusPill label={getResultBadgeLabel(result)} tone={getResultTone(result)} />
+                  </div>
                 </div>
               ))}
             </div>

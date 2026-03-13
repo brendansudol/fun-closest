@@ -76,6 +76,7 @@ export type CwogoGuessStore = {
   isBust: boolean | null;
   distanceUnder: number | null;
   rank: number | null;
+  pointsAwarded: number;
   isWinner: boolean;
 };
 
@@ -105,6 +106,7 @@ export type RevealedGuess = {
   isExact: boolean;
   distanceUnder: number | null;
   rank: number | null;
+  pointsAwarded: number;
   status: "winner" | "exact" | "under" | "bust";
   submittedAt: string;
   isMe?: boolean;

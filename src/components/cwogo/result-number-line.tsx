@@ -63,8 +63,21 @@ export function ResultNumberLine({
         {results.map((result) => {
           const x = position(result.guessNumeric);
           const y = lanes.get(result.playerId) ?? 140;
-          const fill = result.isWinner ? "var(--winner)" : result.isBust ? "white" : "var(--accent)";
-          const stroke = result.isBust ? "var(--bust)" : result.isWinner ? "var(--winner)" : "rgba(31,25,49,0.12)";
+          const isScoring = result.pointsAwarded > 0;
+          const fill = result.isWinner
+            ? "var(--winner)"
+            : result.isBust
+              ? "white"
+              : isScoring
+                ? "var(--accent-cool)"
+                : "var(--accent)";
+          const stroke = result.isBust
+            ? "var(--bust)"
+            : result.isWinner
+              ? "var(--winner)"
+              : isScoring
+                ? "var(--accent-cool)"
+                : "rgba(31,25,49,0.12)";
 
           return (
             <g key={result.playerId}>

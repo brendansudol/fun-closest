@@ -140,8 +140,7 @@ function lockAndScoreRound(
 
   if (!round.scoreApplied) {
     const guesses = listRoundGuesses(store, round.id);
-    const { scoredGuesses, winnerPlayerIds } = scoreGuessRows(round.answerNumeric, guesses);
-    const uniqueWinners = new Set(winnerPlayerIds);
+    const { scoredGuesses } = scoreGuessRows(round.answerNumeric, guesses);
 
     for (const result of scoredGuesses) {
       const guess = store.guesses[result.id];
@@ -152,13 +151,14 @@ function lockAndScoreRound(
       guess.isBust = result.isBust;
       guess.distanceUnder = result.distanceUnder;
       guess.rank = result.rank;
+      guess.pointsAwarded = result.pointsAwarded;
       guess.isWinner = result.isWinner;
-    }
 
-    for (const winnerId of uniqueWinners) {
-      const player = store.players[winnerId];
-      if (player) {
-        player.scoreTotal += 1;
+      if (result.pointsAwarded > 0) {
+        const player = store.players[guess.playerId];
+        if (player) {
+          player.scoreTotal += result.pointsAwarded;
+        }
       }
     }
 
@@ -494,6 +494,7 @@ export async function submitGuess(input: { roundId: string; playerToken: string;
       existingGuess.isBust = null;
       existingGuess.distanceUnder = null;
       existingGuess.rank = null;
+      existingGuess.pointsAwarded = 0;
       existingGuess.isWinner = false;
     } else {
       assignGuess(store, {
@@ -507,6 +508,7 @@ export async function submitGuess(input: { roundId: string; playerToken: string;
         isBust: null,
         distanceUnder: null,
         rank: null,
+        pointsAwarded: 0,
         isWinner: false,
       });
     }

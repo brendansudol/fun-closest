@@ -90,6 +90,7 @@ function buildRevealedGuesses(
         isExact,
         distanceUnder: guess.distanceUnder,
         rank: guess.rank,
+        pointsAwarded: guess.pointsAwarded ?? 0,
         status: guess.isBust ? "bust" : isExact ? "exact" : guess.isWinner ? "winner" : "under",
         submittedAt: guess.submittedAt,
         isMe: guess.playerId === meId,

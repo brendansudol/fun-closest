@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ResultNumberLine } from "./result-number-line";
 import { Scoreboard } from "./scoreboard";
 import { formatCountdownLabel, formatPackLabel } from "@/lib/cwogo/format";
+import { buildRoundScoringSummary, formatPointsAwarded, getResultBadgeLabel, getResultTone } from "@/lib/cwogo/results";
 import { usePlayerRoomState } from "@/hooks/use-player-room-state";
 import { useRoomCountdown } from "@/hooks/use-room-countdown";
 import { useSubmitGuess } from "@/hooks/use-submit-guess";
@@ -13,6 +14,23 @@ import type { PlayerRoomState } from "@/types/cwogo";
 
 function StatusBanner({ children }: { children: React.ReactNode }) {
   return <div className="rounded-[1.75rem] border border-line bg-white/60 px-5 py-4 text-sm leading-7 text-muted">{children}</div>;
+}
+
+function ResultPill({ label, tone }: { label: string; tone: ReturnType<typeof getResultTone> }) {
+  const toneClass =
+    tone === "winner"
+      ? "border-winner/30 bg-winner/10 text-winner"
+      : tone === "bust"
+        ? "border-bust/30 bg-bust/10 text-bust"
+        : tone === "cool"
+          ? "border-accent-cool/30 bg-accent-cool/10 text-accent-cool"
+          : "border-foreground/10 bg-white/70 text-foreground";
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${toneClass}`}>
+      {label}
+    </span>
+  );
 }
 
 function formatGameLengthLabel(maxRounds: number | null) {
@@ -61,6 +79,11 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
   const round = roomData.currentRound;
   const draftGuess = round ? draftGuessesByRound[round.id] ?? roomData.myGuess?.guessRaw ?? "" : "";
   const winnerLabel = roomData.game.isGameOver ? getWinnerLabel(roomData) : null;
+  const scoringSummary = round?.results
+    ? buildRoundScoringSummary(round.results.revealedGuesses, (result) =>
+        result.isMe ? `${result.displayName} (you)` : result.displayName,
+      )
+    : null;
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
@@ -217,18 +240,18 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
               ) : null}
 
               <div className="rounded-[1.75rem] border border-line bg-white/55 p-5">
-                <p className="text-xs uppercase tracking-[0.24em] text-muted">Result</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-muted">Scoring</p>
                 <h3 className="mt-2 font-serif text-3xl text-foreground">
                   {round.results.revealedGuesses.length === 0
                     ? "No submissions this round."
                     : round.results.noWinner
                       ? "Everybody went over."
-                      : `${round.results.revealedGuesses
-                          .filter((guess) => guess.isWinner)
-                          .map((guess) => guess.displayName)
-                          .join(", ")} take${round.results.winnerPlayerIds.length > 1 ? "" : "s"} the point.`}
+                      : "Scoring this round"}
                 </h3>
-                <p className="mt-3 text-lg text-muted">Actual answer: {round.results.answerDisplay}</p>
+                {scoringSummary ? <p className="mt-3 text-lg text-muted">{scoringSummary}</p> : null}
+                <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-lg text-muted`}>
+                  Actual answer: {round.results.answerDisplay}
+                </p>
               </div>
 
               <ResultNumberLine
@@ -248,6 +271,8 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
                           ? "border-accent bg-[rgba(239,109,68,0.12)]"
                           : result.isWinner
                             ? "border-winner/30 bg-winner/10"
+                            : result.pointsAwarded > 0
+                              ? "border-accent-cool/30 bg-accent-cool/10"
                             : result.isBust
                               ? "border-bust/30 bg-bust/10"
                               : "border-line bg-white/60"
@@ -260,17 +285,12 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
                         </p>
                         <p className="text-sm text-muted">Guess: {result.guessDisplay}</p>
                       </div>
-                      <span
-                        className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
-                          result.isWinner
-                            ? "border-winner/30 bg-winner/10 text-winner"
-                            : result.isBust
-                              ? "border-bust/30 bg-bust/10 text-bust"
-                              : "border-accent-cool/30 bg-accent-cool/10 text-accent-cool"
-                        }`}
-                      >
-                        {result.status}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        {result.pointsAwarded > 0 ? (
+                          <p className="text-lg font-semibold text-foreground">{formatPointsAwarded(result.pointsAwarded)}</p>
+                        ) : null}
+                        <ResultPill label={getResultBadgeLabel(result)} tone={getResultTone(result)} />
+                      </div>
                     </div>
                   ))}
                 </div>
