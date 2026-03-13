@@ -1,5 +1,5 @@
 import { DEFAULT_ROOM_TITLE } from "./constants";
-import { formatNumericValue } from "./format";
+import { formatNumericValue, formatPromptNumericValue, isYearValuePrompt } from "./format";
 import { getGameWinnerPlayerIds, getRoomMaxRounds, getRoundsRemaining, isGameOver } from "./game";
 import type {
   CwogoGuessStore,
@@ -66,6 +66,35 @@ function buildScoreboard(players: CwogoPlayerStore[], meId?: string) {
     }));
 }
 
+function formatRoundNumericValue(
+  value: number,
+  round: Pick<CwogoRoundStore, "category" | "promptUnitLabel" | "promptUnitShort">,
+) {
+  return formatPromptNumericValue(value, {
+    category: round.category,
+    unitLabel: round.promptUnitLabel,
+    unitShort: round.promptUnitShort,
+  });
+}
+
+function getRoundAnswerDisplay(round: CwogoRoundStore) {
+  const isYearPrompt = isYearValuePrompt({
+    category: round.category,
+    unitLabel: round.promptUnitLabel,
+    unitShort: round.promptUnitShort,
+  });
+
+  if (!isYearPrompt) {
+    return round.answerDisplay;
+  }
+
+  if (round.answerDisplay === formatNumericValue(round.answerNumeric)) {
+    return formatRoundNumericValue(round.answerNumeric, round);
+  }
+
+  return round.answerDisplay;
+}
+
 function buildRevealedGuesses(
   round: CwogoRoundStore,
   players: CwogoPlayerStore[],
@@ -83,7 +112,7 @@ function buildRevealedGuesses(
         playerId: guess.playerId,
         displayName: player?.displayName ?? "Unknown",
         guessNumeric: guess.guessNumeric,
-        guessDisplay: formatNumericValue(guess.guessNumeric),
+        guessDisplay: formatRoundNumericValue(guess.guessNumeric, round),
         guessRaw: guess.guessRaw,
         isBust: guess.isBust ?? false,
         isWinner: guess.isWinner,
@@ -114,7 +143,7 @@ function buildResults(round: CwogoRoundStore, players: CwogoPlayerStore[], guess
 
   return {
     answerNumeric: round.answerNumeric,
-    answerDisplay: round.answerDisplay,
+    answerDisplay: getRoundAnswerDisplay(round),
     winnerPlayerIds: revealedGuesses.filter((guess) => guess.isWinner).map((guess) => guess.playerId),
     noWinner: revealedGuesses.length === 0 || revealedGuesses.every((guess) => guess.isBust),
     revealedGuesses,
@@ -223,7 +252,7 @@ export function serializePlayerState(input: {
       ? {
           guessNumeric: myGuess.guessNumeric,
           guessRaw: myGuess.guessRaw,
-          displayGuess: formatNumericValue(myGuess.guessNumeric),
+          displayGuess: input.round ? formatRoundNumericValue(myGuess.guessNumeric, input.round) : formatNumericValue(myGuess.guessNumeric),
           updatedAt: myGuess.updatedAt,
         }
       : null,

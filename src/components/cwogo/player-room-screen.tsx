@@ -257,6 +257,9 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
               <ResultNumberLine
                 actualValue={round.results.answerNumeric}
                 answerDisplay={round.results.answerDisplay}
+                category={round.category}
+                promptUnitLabel={round.promptUnitLabel}
+                promptUnitShort={round.promptUnitShort}
                 results={round.results.revealedGuesses}
               />
 

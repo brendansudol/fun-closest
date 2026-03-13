@@ -1,5 +1,4 @@
 import { CwogoError } from "./errors";
-import { formatNumericValue } from "./format";
 
 const WORD_MULTIPLIERS: Record<string, number> = {
   thousand: 1_000,
@@ -43,6 +42,5 @@ export function parseGuessInput(rawInput: string) {
 
   return {
     normalizedValue,
-    displayValue: formatNumericValue(normalizedValue),
   };
 }

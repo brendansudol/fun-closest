@@ -304,6 +304,9 @@ function HostRoundBody({
           <ResultNumberLine
             actualValue={round.results.answerNumeric}
             answerDisplay={round.results.answerDisplay}
+            category={round.category}
+            promptUnitLabel={round.promptUnitLabel}
+            promptUnitShort={round.promptUnitShort}
             results={round.results.revealedGuesses}
           />
 

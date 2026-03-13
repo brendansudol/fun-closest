@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serializeHostState } from "./serializers";
+import { serializeHostState, serializePlayerState } from "./serializers";
 import { scoreGuessRows } from "./scoring";
 import type { CwogoGuessStore, CwogoPlayerStore, CwogoRoomStore, CwogoRoundStore } from "@/types/cwogo";
 
@@ -175,5 +175,125 @@ describe("serializeHostState", () => {
       pointsAwarded: 0,
       isWinner: true,
     });
+  });
+
+  it("displays year-valued answers and guesses without thousands separators", () => {
+    const room: CwogoRoomStore = {
+      id: "room-1",
+      slug: "room-1",
+      joinCode: "ABC123",
+      title: "Test Room",
+      adminTokenHash: "host",
+      currentRoundId: "round-1",
+      defaultPack: "tech",
+      defaultRoundSeconds: 25,
+      maxRounds: 5,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    const round: CwogoRoundStore = {
+      id: "round-1",
+      roomId: room.id,
+      roundNumber: 1,
+      phase: "revealed",
+      promptId: "prompt-1",
+      promptText: "Year the JPEG standard was first published",
+      promptUnitLabel: "year",
+      promptUnitShort: "year",
+      answerNumeric: 1992,
+      answerDisplay: "1,992",
+      hintText: null,
+      pack: "tech",
+      category: "Year",
+      difficulty: 2,
+      opensAt: "2026-01-01T00:00:00.000Z",
+      locksAt: "2026-01-01T00:00:25.000Z",
+      lockedAt: "2026-01-01T00:00:25.000Z",
+      revealedAt: "2026-01-01T00:00:30.000Z",
+      scoreApplied: true,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    };
+    const players: CwogoPlayerStore[] = [
+      {
+        id: "p1",
+        roomId: room.id,
+        displayName: "Alice",
+        sessionTokenHash: "token-1",
+        scoreTotal: 1,
+        joinedAt: "2026-01-01T00:00:00.000Z",
+        lastSeenAt: "2026-01-01T00:00:30.000Z",
+        isActive: true,
+      },
+      {
+        id: "p2",
+        roomId: room.id,
+        displayName: "Bob",
+        sessionTokenHash: "token-2",
+        scoreTotal: 0,
+        joinedAt: "2026-01-01T00:00:05.000Z",
+        lastSeenAt: "2026-01-01T00:00:30.000Z",
+        isActive: true,
+      },
+    ];
+    const guesses: CwogoGuessStore[] = [
+      {
+        ...createGuess(1, 1990),
+        isBust: false,
+        distanceUnder: 2,
+        rank: 1,
+        pointsAwarded: 1,
+        isWinner: true,
+      },
+      {
+        ...createGuess(2, 1994),
+        isBust: true,
+        distanceUnder: null,
+        rank: null,
+        pointsAwarded: 0,
+        isWinner: false,
+      },
+    ];
+
+    const hostState = serializeHostState({
+      room,
+      roomVersion: 1,
+      round,
+      rounds: [round],
+      players,
+      guesses,
+      serverNow: "2026-01-01T00:00:31.000Z",
+    });
+    const playerState = serializePlayerState({
+      room,
+      roomVersion: 1,
+      round: {
+        ...round,
+        phase: "open",
+        revealedAt: null,
+        lockedAt: null,
+        scoreApplied: false,
+      },
+      rounds: [],
+      players,
+      guesses: [
+        {
+          ...createGuess(1, 1991),
+          isBust: null,
+          distanceUnder: null,
+          rank: null,
+          pointsAwarded: 0,
+          isWinner: false,
+        },
+      ],
+      me: players[0],
+      serverNow: "2026-01-01T00:00:10.000Z",
+    });
+
+    expect(hostState.currentRound?.results?.answerDisplay).toBe("1992");
+    expect(hostState.currentRound?.results?.revealedGuesses.map((guess) => guess.guessDisplay)).toEqual([
+      "1990",
+      "1994",
+    ]);
+    expect(playerState.myGuess?.displayGuess).toBe("1991");
   });
 });

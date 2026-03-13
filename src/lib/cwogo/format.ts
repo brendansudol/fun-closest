@@ -10,12 +10,49 @@ const decimalFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 0,
 });
 
-export function formatNumericValue(value: number) {
+const plainIntegerFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+  useGrouping: false,
+});
+
+const plainDecimalFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 0,
+  useGrouping: false,
+});
+
+type NumericFormatOptions = {
+  useGrouping?: boolean;
+};
+
+type PromptNumericFormatContext = {
+  category?: string | null;
+  unitLabel?: string | null;
+  unitShort?: string | null;
+};
+
+function normalizeFormatField(value?: string | null) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+export function formatNumericValue(value: number, options: NumericFormatOptions = {}) {
+  const useGrouping = options.useGrouping ?? true;
+
   if (Number.isInteger(value)) {
-    return integerFormatter.format(value);
+    return useGrouping ? integerFormatter.format(value) : plainIntegerFormatter.format(value);
   }
 
-  return decimalFormatter.format(value);
+  return useGrouping ? decimalFormatter.format(value) : plainDecimalFormatter.format(value);
+}
+
+export function isYearValuePrompt(context: PromptNumericFormatContext) {
+  return [context.category, context.unitLabel, context.unitShort].some(
+    (value) => normalizeFormatField(value) === "year",
+  );
+}
+
+export function formatPromptNumericValue(value: number, context: PromptNumericFormatContext) {
+  return formatNumericValue(value, { useGrouping: !isYearValuePrompt(context) });
 }
 
 export function formatPackLabel(pack: Pack) {

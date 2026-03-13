@@ -1,4 +1,4 @@
-import { formatNumericValue } from "@/lib/cwogo/format";
+import { formatPromptNumericValue } from "@/lib/cwogo/format";
 import type { RevealedGuess } from "@/types/cwogo";
 
 function lanePosition(index: number, bust: boolean) {
@@ -27,10 +27,16 @@ export function getResultNumberLineDomain(
 export function ResultNumberLine({
   actualValue,
   answerDisplay,
+  category,
+  promptUnitLabel,
+  promptUnitShort,
   results,
 }: {
   actualValue: number;
   answerDisplay: string;
+  category: string | null;
+  promptUnitLabel: string;
+  promptUnitShort: string | null;
   results: RevealedGuess[];
 }) {
   const { minValue, maxValue } = getResultNumberLineDomain(actualValue, results);
@@ -38,6 +44,11 @@ export function ResultNumberLine({
   const bustResults = results.filter((result) => result.isBust);
   const lanes = new Map<string, number>();
   const scaleSpan = maxValue - minValue;
+  const formatContext = {
+    category,
+    unitLabel: promptUnitLabel,
+    unitShort: promptUnitShort,
+  };
 
   underResults.forEach((result, index) => {
     lanes.set(result.playerId, lanePosition(index, false));
@@ -70,10 +81,10 @@ export function ResultNumberLine({
         </text>
 
         <text x="60" y="196" className="fill-[var(--muted)] text-[12px] font-medium">
-          {formatNumericValue(minValue)}
+          {formatPromptNumericValue(minValue, formatContext)}
         </text>
         <text x="940" y="196" textAnchor="end" className="fill-[var(--muted)] text-[12px] font-medium">
-          {formatNumericValue(maxValue)}
+          {formatPromptNumericValue(maxValue, formatContext)}
         </text>
 
         {results.map((result) => {

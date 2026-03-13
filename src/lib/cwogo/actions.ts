@@ -1,5 +1,6 @@
 import { DEFAULT_ROOM_TITLE, DEFAULT_ROUND_SECONDS } from "./constants";
 import { CwogoError, invariant } from "./errors";
+import { formatPromptNumericValue } from "./format";
 import { isGameOver } from "./game";
 import { parseGuessInput } from "./parse-guess";
 import { PROMPTS } from "./prompts";
@@ -520,7 +521,11 @@ export async function submitGuess(input: { roundId: string; playerToken: string;
     return {
       ok: true,
       normalizedGuess: parsedGuess.normalizedValue,
-      displayGuess: parsedGuess.displayValue,
+      displayGuess: formatPromptNumericValue(parsedGuess.normalizedValue, {
+        category: round.category,
+        unitLabel: round.promptUnitLabel,
+        unitShort: round.promptUnitShort,
+      }),
     };
   });
 }

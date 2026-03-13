@@ -1,31 +1,19 @@
+import { formatNumericValue, formatPromptNumericValue } from "./format";
 import { validatePromptBank } from "./prompt-validation.js";
 import type { Prompt } from "../../types/cwogo";
-
-const integerFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-});
-
-const decimalFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 0,
-});
 
 type PromptInput = Omit<Prompt, "answerDisplay"> & {
   answerDisplay?: string;
 };
 
-function formatAnswerDisplay(value: number) {
-  if (Number.isInteger(value)) {
-    return integerFormatter.format(value);
-  }
-
-  return decimalFormatter.format(value);
+function formatAnswerDisplay(input: PromptInput) {
+  return formatPromptNumericValue(input.answerNumeric, input);
 }
 
 function definePrompt(input: PromptInput): Prompt {
   return {
     ...input,
-    answerDisplay: input.answerDisplay ?? formatAnswerDisplay(input.answerNumeric),
+    answerDisplay: input.answerDisplay ?? formatAnswerDisplay(input),
   };
 }
 
@@ -34,7 +22,7 @@ function defineUsdPrompt(input: Omit<PromptInput, "answerDisplay" | "unitLabel" 
     ...input,
     unitLabel: "US dollars",
     unitShort: "USD",
-    answerDisplay: `$${formatAnswerDisplay(input.answerNumeric)}`,
+    answerDisplay: `$${formatNumericValue(input.answerNumeric)}`,
   });
 }
 
