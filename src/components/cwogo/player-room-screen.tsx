@@ -13,7 +13,11 @@ import { useSubmitGuess } from "@/hooks/use-submit-guess";
 import type { PlayerRoomState } from "@/types/cwogo";
 
 function StatusBanner({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-[1.75rem] border border-line bg-white/60 px-5 py-4 text-sm leading-7 text-muted">{children}</div>;
+  return (
+    <div className="rounded-[1.75rem] border border-line bg-white/60 px-5 py-4 text-sm leading-7 text-muted break-words">
+      {children}
+    </div>
+  );
 }
 
 function ResultPill({ label, tone }: { label: string; tone: ReturnType<typeof getResultTone> }) {
@@ -89,7 +93,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
     <div className="mx-auto grid max-w-3xl gap-6">
       <section className="glass-card rounded-[2.25rem] p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.28em] text-muted">Player view</p>
             <h1 className="mt-3 font-serif text-4xl text-foreground sm:text-5xl">{roomData.room.title}</h1>
             <p className="mt-4 text-lg leading-8 text-muted">
@@ -120,7 +124,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
       {round ? (
         <section className="glass-card rounded-[2.25rem] p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full border border-accent-cool/30 bg-accent-cool/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-accent-cool">
                   Round {round.roundNumber}
@@ -132,7 +136,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
                   {formatGameLengthLabel(roomData.game.maxRounds)}
                 </span>
               </div>
-              <h2 className="mt-4 font-serif text-4xl text-foreground sm:text-5xl">{round.promptText}</h2>
+              <h2 className="mt-4 break-words font-serif text-4xl text-foreground sm:text-5xl">{round.promptText}</h2>
               <p className="mt-4 text-lg leading-8 text-muted">
                 Units: {round.promptUnitLabel}
                 {round.hintText ? ` · ${round.hintText}` : ""}
@@ -148,7 +152,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
 
           {round.phase === "open" ? (
             <form
-              className="mt-8 grid gap-4"
+              className="mt-8 grid min-w-0 gap-4"
               onSubmit={(event) => {
                 event.preventDefault();
                 submitGuessMutation.mutate(draftGuess, {
@@ -158,7 +162,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
                 });
               }}
             >
-              <label className="grid gap-2">
+              <label className="grid min-w-0 gap-2">
                 <span className="text-sm font-semibold text-foreground">Your guess</span>
                 <input
                   value={draftGuess}
@@ -174,7 +178,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
                   }}
                   inputMode="decimal"
                   placeholder="1.2m"
-                  className="rounded-[1.75rem] border border-line bg-white px-5 py-4 text-3xl font-semibold outline-none focus:border-accent"
+                  className="w-full min-w-0 rounded-[1.75rem] border border-line bg-white px-5 py-4 text-2xl font-semibold outline-none focus:border-accent sm:text-3xl"
                 />
               </label>
 
