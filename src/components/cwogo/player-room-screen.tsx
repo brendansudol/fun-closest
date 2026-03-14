@@ -173,7 +173,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
                     }));
                   }}
                   inputMode="decimal"
-                  placeholder="1.2m"
+                  placeholder="Enter a guess"
                   className="rounded-[1.75rem] border border-line bg-white px-5 py-4 text-3xl font-semibold outline-none focus:border-accent"
                 />
               </label>
