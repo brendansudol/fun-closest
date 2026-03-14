@@ -51,4 +51,5 @@ export const startRoundSchema = z.object({
 
 export const submitGuessSchema = z.object({
   guess: z.string().trim().min(1, "Enter a numeric guess.").max(40, "Guess is too long."),
+  promptRevision: z.number().int().min(0, "Prompt revision is invalid."),
 });

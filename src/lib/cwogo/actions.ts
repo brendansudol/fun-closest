@@ -3,7 +3,13 @@ import { CwogoError, invariant } from "./errors";
 import { formatPromptNumericValue } from "./format";
 import { isGameOver } from "./game";
 import { parseGuessInput } from "./parse-guess";
-import { PROMPTS } from "./prompts";
+import {
+  buildPromptPool,
+  getPromptRevision,
+  getRoundPromptHistoryIds,
+  listUsedPromptIdsForRounds,
+  selectRandomPrompt,
+} from "./prompt-selection";
 import { scoreGuessRows } from "./scoring";
 import {
   assignGuess,
@@ -31,6 +37,10 @@ function nowIso() {
 
 function futureIso(secondsFromNow: number) {
   return new Date(Date.now() + secondsFromNow * 1_000).toISOString();
+}
+
+function futureIsoFrom(baseTime: string, secondsFromBase: number) {
+  return new Date(new Date(baseTime).getTime() + secondsFromBase * 1_000).toISOString();
 }
 
 function randomChars(alphabet: string, size: number) {
@@ -63,16 +73,8 @@ function createJoinCode(store: Awaited<ReturnType<typeof getStoreSnapshot>>) {
   return joinCode;
 }
 
-function buildPromptPool(pack: Pack) {
-  if (pack === "mixed") {
-    return PROMPTS;
-  }
-
-  return PROMPTS.filter((prompt) => prompt.pack === pack);
-}
-
 function listUsedPromptIdsForRoom(store: Awaited<ReturnType<typeof getStoreSnapshot>>, roomId: string) {
-  return new Set(listRoomRounds(store, roomId).map((round) => round.promptId));
+  return listUsedPromptIdsForRounds(listRoomRounds(store, roomId));
 }
 
 function getMostRecentPromptIdForRoom(store: Awaited<ReturnType<typeof getStoreSnapshot>>, roomId: string) {
@@ -89,22 +91,23 @@ function selectPrompt(
 
   invariant(pool.length > 0, "No prompts are available for that pack.", 400);
 
+  const usedPromptIds = listUsedPromptIdsForRoom(store, room.id);
+  const lastPromptId = getMostRecentPromptIdForRoom(store, room.id);
+  const selectedPrompt = selectRandomPrompt({
+    pool,
+    requestedPromptId: promptId,
+    usedPromptIds,
+    fallbackExcludePromptId: lastPromptId,
+    allowFallbackToExcluded: true,
+  });
+
   if (promptId) {
-    const requestedPrompt = pool.find((prompt) => prompt.id === promptId);
-    invariant(requestedPrompt, "Prompt not found for that pack.", 404);
-    return requestedPrompt;
+    invariant(selectedPrompt, "Prompt not found for that pack.", 404);
+    return selectedPrompt;
   }
 
-  const usedPromptIds = listUsedPromptIdsForRoom(store, room.id);
-  const availablePrompts = pool.filter((prompt) => !usedPromptIds.has(prompt.id));
-  const lastPromptId = getMostRecentPromptIdForRoom(store, room.id);
-  const recycledPool =
-    availablePrompts.length === 0 && lastPromptId && pool.length > 1
-      ? pool.filter((prompt) => prompt.id !== lastPromptId)
-      : pool;
-  const selectionPool = availablePrompts.length > 0 ? availablePrompts : recycledPool;
-
-  return selectionPool[Math.floor(Math.random() * selectionPool.length)];
+  invariant(selectedPrompt, "No prompts are available for that pack.", 409);
+  return selectedPrompt;
 }
 
 function authenticateHost(store: Awaited<ReturnType<typeof getStoreSnapshot>>, slug: string, token: string) {
@@ -118,6 +121,11 @@ function authenticatePlayer(store: Awaited<ReturnType<typeof getStoreSnapshot>>,
   const player = findPlayerByTokenHash(store, roomId, hashOpaqueToken(token));
   invariant(player, "Player session required.", 401);
   return player;
+}
+
+function getRoundLengthSeconds(round: { opensAt: string; locksAt: string }) {
+  const roundLengthMs = new Date(round.locksAt).getTime() - new Date(round.opensAt).getTime();
+  return Math.max(1, Math.round(roundLengthMs / 1_000));
 }
 
 function lockAndScoreRound(
@@ -365,6 +373,7 @@ export async function startRound(input: {
       roundNumber: rounds.length + 1,
       phase: "open",
       promptId: selectedPrompt.id,
+      promptHistoryIds: [selectedPrompt.id],
       promptText: selectedPrompt.promptText,
       promptUnitLabel: selectedPrompt.unitLabel,
       promptUnitShort: selectedPrompt.unitShort ?? null,
@@ -393,6 +402,73 @@ export async function startRound(input: {
 
     return { ok: true, roundId };
   });
+}
+
+export async function swapRoundPrompt(input: { slug: string; hostToken: string }) {
+  const result = await withStoreMutation((store, { markDirty }) => {
+    const room = authenticateHost(store, input.slug, input.hostToken);
+    const currentRound = getCurrentRound(store, room);
+
+    invariant(currentRound, "There is no active round to swap.", 404);
+    invariant(currentRound.phase === "open", "Only open rounds can swap prompts.", 409);
+
+    const currentTime = nowIso();
+
+    if (Date.now() >= new Date(currentRound.locksAt).getTime()) {
+      const didChange = lockAndScoreRound(store, room, currentTime);
+
+      if (didChange) {
+        markDirty();
+      }
+
+      return { status: "locked" as const };
+    }
+
+    const pool = buildPromptPool(currentRound.pack);
+    invariant(pool.length > 0, "No prompts are available for that pack.", 400);
+
+    const currentPromptHistoryIds = getRoundPromptHistoryIds(currentRound);
+    const selectedPrompt = selectRandomPrompt({
+      pool,
+      usedPromptIds: listUsedPromptIdsForRoom(store, room.id),
+      currentRoundPromptIds: currentPromptHistoryIds,
+      fallbackExcludePromptId: currentRound.promptId,
+    });
+
+    invariant(selectedPrompt, "No alternate prompt is available for that pack.", 409);
+    const roundLengthSeconds = getRoundLengthSeconds(currentRound);
+
+    currentRound.promptId = selectedPrompt.id;
+    currentRound.promptHistoryIds = [...currentPromptHistoryIds, selectedPrompt.id];
+    currentRound.promptText = selectedPrompt.promptText;
+    currentRound.promptUnitLabel = selectedPrompt.unitLabel;
+    currentRound.promptUnitShort = selectedPrompt.unitShort ?? null;
+    currentRound.answerNumeric = selectedPrompt.answerNumeric;
+    currentRound.answerDisplay = selectedPrompt.answerDisplay;
+    currentRound.hintText = selectedPrompt.hintText ?? null;
+    currentRound.category = selectedPrompt.category;
+    currentRound.difficulty = selectedPrompt.difficulty ?? null;
+    currentRound.opensAt = currentTime;
+    currentRound.locksAt = futureIsoFrom(currentTime, roundLengthSeconds);
+    currentRound.lockedAt = null;
+    currentRound.revealedAt = null;
+    currentRound.scoreApplied = false;
+
+    for (const guess of listRoundGuesses(store, currentRound.id)) {
+      delete store.guesses[guess.id];
+    }
+
+    room.updatedAt = currentTime;
+    markDirty();
+
+    return { status: "ok" as const };
+  });
+
+  if (result.status === "locked") {
+    throw new CwogoError(409, "That round just locked.");
+  }
+
+  return { ok: true };
 }
 
 export async function lockRound(input: { slug: string; hostToken: string }) {
@@ -463,8 +539,8 @@ export async function resetGame(input: { slug: string; hostToken: string }) {
   });
 }
 
-export async function submitGuess(input: { roundId: string; playerToken: string; guess: string }) {
-  return withStoreMutation((store, { markDirty }) => {
+export async function submitGuess(input: { roundId: string; playerToken: string; guess: string; promptRevision: number }) {
+  const result = await withStoreMutation((store, { markDirty }) => {
     const round = store.rounds[input.roundId];
     invariant(round, "Round not found.", 404);
 
@@ -480,10 +556,15 @@ export async function submitGuess(input: { roundId: string; playerToken: string;
         markDirty();
       }
 
-      throw new CwogoError(409, "That round just locked.");
+      return { status: "locked" as const };
     }
 
     invariant(round.phase === "open", "This round is no longer accepting guesses.", 409);
+    invariant(
+      input.promptRevision === getPromptRevision(round),
+      "The prompt changed. Review the new prompt and submit again.",
+      409,
+    );
 
     const parsedGuess = parseGuessInput(input.guess);
     const existingGuess = findGuessByRoundAndPlayer(store, round.id, player.id);
@@ -519,6 +600,7 @@ export async function submitGuess(input: { roundId: string; playerToken: string;
     markDirty();
 
     return {
+      status: "ok" as const,
       ok: true,
       normalizedGuess: parsedGuess.normalizedValue,
       displayGuess: formatPromptNumericValue(parsedGuess.normalizedValue, {
@@ -528,4 +610,10 @@ export async function submitGuess(input: { roundId: string; playerToken: string;
       }),
     };
   });
+
+  if (result.status === "locked") {
+    throw new CwogoError(409, "That round just locked.");
+  }
+
+  return result;
 }

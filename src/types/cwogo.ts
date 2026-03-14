@@ -48,6 +48,7 @@ export type CwogoRoundStore = {
   roundNumber: number;
   phase: RoundPhase;
   promptId: string;
+  promptHistoryIds?: string[];
   promptText: string;
   promptUnitLabel: string;
   promptUnitShort: string | null;
@@ -127,6 +128,7 @@ export type RoundSummary = {
   pack: Pack;
   category: string | null;
   promptText: string;
+  promptRevision: number;
   promptUnitLabel: string;
   promptUnitShort: string | null;
   hintText: string | null;

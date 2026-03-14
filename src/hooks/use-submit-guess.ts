@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { requestJson } from "@/lib/cwogo/fetcher";
 
-export function useSubmitGuess(roundId: string, slug: string) {
+export function useSubmitGuess(roundId: string, promptRevision: number, slug: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -12,10 +12,13 @@ export function useSubmitGuess(roundId: string, slug: string) {
         `/api/cwogo/rounds/${roundId}/guess`,
         {
           method: "POST",
-          body: JSON.stringify({ guess }),
+          body: JSON.stringify({ guess, promptRevision }),
         },
       ),
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["cwogo", "player-room", slug] });
+    },
+    onError: async () => {
       await queryClient.invalidateQueries({ queryKey: ["cwogo", "player-room", slug] });
     },
   });

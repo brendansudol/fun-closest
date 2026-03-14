@@ -1,5 +1,6 @@
 import { DEFAULT_ROOM_TITLE } from "./constants";
 import { formatNumericValue, formatPromptNumericValue, isYearValuePrompt } from "./format";
+import { getPromptRevision } from "./prompt-selection";
 import { getGameWinnerPlayerIds, getRoomMaxRounds, getRoundsRemaining, isGameOver } from "./game";
 import type {
   CwogoGuessStore,
@@ -168,6 +169,7 @@ function buildRoundSummary(
     pack: round.pack,
     category: round.category,
     promptText: round.promptText,
+    promptRevision: getPromptRevision(round),
     promptUnitLabel: round.promptUnitLabel,
     promptUnitShort: round.promptUnitShort,
     hintText: round.hintText,

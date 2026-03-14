@@ -23,6 +23,7 @@ export async function POST(
       roundId,
       playerToken: playerSession.token,
       guess: payload.guess,
+      promptRevision: payload.promptRevision,
     });
 
     return NextResponse.json(result);
