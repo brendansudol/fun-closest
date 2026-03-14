@@ -1,4 +1,5 @@
 import type { CwogoGuessStore } from "@/types/cwogo";
+import { EXACT_BONUS_POINTS } from "./constants";
 
 type ScoredGuess = {
   id: string;
@@ -95,7 +96,7 @@ export function scoreGuessRows(answerNumeric: number, guesses: CwogoGuessStore[]
 
     const tiedEntries = eligible.slice(index, groupEnd);
     const rank = nextRank;
-    const pointsAwarded = pointsByRank[rank] ?? 0;
+    const basePoints = pointsByRank[rank] ?? 0;
 
     for (const entry of tiedEntries) {
       const scoredEntry = scored.find((item) => item.id === entry.guess.id);
@@ -105,7 +106,7 @@ export function scoreGuessRows(answerNumeric: number, guesses: CwogoGuessStore[]
 
       const isWinner = rank === 1;
       scoredEntry.rank = rank;
-      scoredEntry.pointsAwarded = pointsAwarded;
+      scoredEntry.pointsAwarded = basePoints + (entry.isExact ? EXACT_BONUS_POINTS : 0);
       scoredEntry.isWinner = isWinner;
       scoredEntry.status = entry.isExact && isWinner ? "exact" : isWinner ? "winner" : "under";
     }
