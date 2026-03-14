@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ResultNumberLine } from "./result-number-line";
 import { Scoreboard } from "./scoreboard";
+import { EXACT_BONUS_POINTS } from "@/lib/cwogo/constants";
 import { formatCountdownLabel, formatPackLabel } from "@/lib/cwogo/format";
 import { buildRoundScoringSummary, formatPointsAwarded, getResultBadgeLabel, getResultTone } from "@/lib/cwogo/results";
 import { usePlayerRoomState } from "@/hooks/use-player-room-state";
@@ -84,6 +85,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
         result.isMe ? `${result.displayName} (you)` : result.displayName,
       )
     : null;
+  const hasExactHit = round?.results?.revealedGuesses.some((result) => result.isExact) ?? false;
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
@@ -249,6 +251,11 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
                       : "Scoring this round"}
                 </h3>
                 {scoringSummary ? <p className="mt-3 text-lg text-muted">{scoringSummary}</p> : null}
+                {hasExactHit ? (
+                  <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-sm font-semibold uppercase tracking-[0.18em] text-accent-cool`}>
+                    Exact hit bonus applied: {formatPointsAwarded(EXACT_BONUS_POINTS)} per exact guess
+                  </p>
+                ) : null}
                 <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-lg text-muted`}>
                   Actual answer: {round.results.answerDisplay}
                 </p>

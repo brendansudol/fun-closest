@@ -6,7 +6,7 @@ import { useState } from "react";
 import { QrJoinCard } from "./qr-join-card";
 import { ResultNumberLine } from "./result-number-line";
 import { Scoreboard } from "./scoreboard";
-import { PACK_OPTIONS, ROUND_CAP_OPTIONS, ROUND_LENGTH_OPTIONS } from "@/lib/cwogo/constants";
+import { EXACT_BONUS_POINTS, PACK_OPTIONS, ROUND_CAP_OPTIONS, ROUND_LENGTH_OPTIONS } from "@/lib/cwogo/constants";
 import { requestJson } from "@/lib/cwogo/fetcher";
 import { formatCountdownLabel, formatPackLabel } from "@/lib/cwogo/format";
 import { buildRoundScoringSummary, formatPointsAwarded, getResultBadgeLabel, getResultTone } from "@/lib/cwogo/results";
@@ -106,6 +106,7 @@ function HostRoundBody({
   const roundCapValue = maxRounds === null ? "unlimited" : String(maxRounds);
   const winnerLabel = data.game.isGameOver ? getWinnerLabel(data) : null;
   const scoringSummary = round?.results ? buildRoundScoringSummary(round.results.revealedGuesses) : null;
+  const hasExactHit = round?.results?.revealedGuesses.some((result) => result.isExact) ?? false;
 
   if (!round) {
     return (
@@ -298,6 +299,11 @@ function HostRoundBody({
                   : "Scoring this round"}
             </h3>
             {scoringSummary ? <p className="mt-3 text-lg text-muted">{scoringSummary}</p> : null}
+            {hasExactHit ? (
+              <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-sm font-semibold uppercase tracking-[0.18em] text-accent-cool`}>
+                Exact hit bonus applied: {formatPointsAwarded(EXACT_BONUS_POINTS)} per exact guess
+              </p>
+            ) : null}
             <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-lg text-muted`}>Answer: {round.results.answerDisplay}</p>
           </div>
 
