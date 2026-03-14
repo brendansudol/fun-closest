@@ -359,7 +359,7 @@ export function HostRoomScreen({ slug }: { slug: string }) {
   const [roundSeconds, setRoundSeconds] = useState<number | null>(null);
   const [maxRounds, setMaxRounds] = useState<number | null | undefined>(undefined);
   const defaultPack = roomQuery.data?.room.defaultPack ?? "mixed";
-  const defaultRoundSeconds = roomQuery.data?.room.defaultRoundSeconds ?? 25;
+  const defaultRoundSeconds = roomQuery.data?.room.defaultRoundSeconds ?? 30;
   const defaultMaxRounds = roomQuery.data?.room.maxRounds ?? null;
   const activePack = selectedPack ?? defaultPack;
   const activeRoundSeconds = roundSeconds ?? defaultRoundSeconds;

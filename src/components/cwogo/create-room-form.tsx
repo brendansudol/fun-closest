@@ -18,8 +18,8 @@ export function CreateRoomForm() {
   const [title, setTitle] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [defaultPack, setDefaultPack] = useState<Pack>("mixed");
-  const [defaultRoundSeconds, setDefaultRoundSeconds] = useState(25);
-  const [maxRounds, setMaxRounds] = useState<number | null>(null);
+  const [defaultRoundSeconds, setDefaultRoundSeconds] = useState(30);
+  const [maxRounds, setMaxRounds] = useState<number | null>(10);
 
   const createRoomMutation = useMutation({
     mutationFn: () =>
@@ -135,7 +135,7 @@ export function CreateRoomForm() {
 
       <aside className="grid gap-6">
         <section className="glass-card rounded-[2.25rem] p-6">
-          <p className="text-xs uppercase tracking-[0.28em] text-muted">How it plays</p>
+          <p className="text-xs uppercase tracking-[0.28em] text-muted">How it works</p>
           <div className="mt-4 space-y-4 text-sm leading-7 text-muted">
             <p>1. Host starts a round and the prompt appears everywhere.</p>
             <p>2. Players submit one private numeric guess and can update it before lock.</p>

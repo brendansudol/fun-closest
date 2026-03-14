@@ -3,7 +3,7 @@ import type { Pack } from "@/types/cwogo";
 export const HOST_COOKIE_NAME = "cwogo_host_session";
 export const PLAYER_COOKIE_NAME = "cwogo_player_session";
 export const DEFAULT_ROOM_TITLE = "Closest Without Going Over";
-export const DEFAULT_ROUND_SECONDS = 25;
+export const DEFAULT_ROUND_SECONDS = 30;
 export const EXACT_BONUS_POINTS = 1;
 export const MIN_ROUND_SECONDS = 10;
 export const MAX_ROUND_SECONDS = 90;
