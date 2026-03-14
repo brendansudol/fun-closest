@@ -38,6 +38,16 @@ export const PACK_OPTIONS: Array<{ value: Pack; label: string; description: stri
     label: "US",
     description: "US landmarks, civics, and national trivia.",
   },
+  {
+    value: "space",
+    label: "Space",
+    description: "Planets, missions, astronomy, and NASA facts.",
+  },
+  {
+    value: "sports",
+    label: "Sports",
+    description: "Official rules, dimensions, and game-day numbers.",
+  },
 ];
 
 export const PACK_LABELS: Record<Pack, string> = PACK_OPTIONS.reduce<Record<Pack, string>>(
@@ -50,5 +60,7 @@ export const PACK_LABELS: Record<Pack, string> = PACK_OPTIONS.reduce<Record<Pack
     geography: "Geography",
     tech: "Tech",
     us: "US",
+    space: "Space",
+    sports: "Sports",
   },
 );
