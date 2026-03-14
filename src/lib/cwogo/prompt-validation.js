@@ -2,6 +2,8 @@ const PROMPT_COUNT_MINIMUMS = {
   geography: 16,
   tech: 16,
   us: 16,
+  space: 12,
+  sports: 12,
   mixed: 12,
 };
 
@@ -38,6 +40,8 @@ export function validatePromptBank(prompts) {
     geography: 0,
     tech: 0,
     us: 0,
+    space: 0,
+    sports: 0,
     mixed: 0,
   };
 
@@ -129,6 +133,8 @@ export function summarizePromptBank(prompts) {
         geography: 0,
         tech: 0,
         us: 0,
+        space: 0,
+        sports: 0,
         mixed: 0,
       },
     },
