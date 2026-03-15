@@ -6,15 +6,31 @@ import { useState } from "react";
 import { QrJoinCard } from "./qr-join-card";
 import { ResultNumberLine } from "./result-number-line";
 import { Scoreboard } from "./scoreboard";
-import { EXACT_BONUS_POINTS, PACK_OPTIONS, ROUND_CAP_OPTIONS, ROUND_LENGTH_OPTIONS } from "@/lib/cwogo/constants";
+import {
+  EXACT_BONUS_POINTS,
+  PACK_OPTIONS,
+  ROUND_CAP_OPTIONS,
+  ROUND_LENGTH_OPTIONS,
+} from "@/lib/cwogo/constants";
 import { requestJson } from "@/lib/cwogo/fetcher";
 import { formatCountdownLabel, formatPackLabel } from "@/lib/cwogo/format";
-import { buildRoundScoringSummary, formatPointsAwarded, getResultBadgeLabel, getResultTone } from "@/lib/cwogo/results";
+import {
+  buildRoundScoringSummary,
+  formatPointsAwarded,
+  getResultBadgeLabel,
+  getResultTone,
+} from "@/lib/cwogo/results";
 import { useHostRoomState } from "@/hooks/use-host-room-state";
 import { useRoomCountdown } from "@/hooks/use-room-countdown";
 import type { HostRoomState, Pack } from "@/types/cwogo";
 
-function StatusPill({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "winner" | "bust" | "cool" }) {
+function StatusPill({
+  label,
+  tone = "neutral",
+}: {
+  label: string;
+  tone?: "neutral" | "winner" | "bust" | "cool";
+}) {
   const toneClass =
     tone === "winner"
       ? "border-winner/30 bg-winner/10 text-winner"
@@ -24,7 +40,13 @@ function StatusPill({ label, tone = "neutral" }: { label: string; tone?: "neutra
           ? "border-accent-cool/30 bg-accent-cool/10 text-accent-cool"
           : "border-foreground/10 bg-white/70 text-foreground";
 
-  return <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${toneClass}`}>{label}</span>;
+  return (
+    <span
+      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${toneClass}`}
+    >
+      {label}
+    </span>
+  );
 }
 
 function formatGameLengthLabel(maxRounds: number | null) {
@@ -32,7 +54,9 @@ function formatGameLengthLabel(maxRounds: number | null) {
 }
 
 function getWinnerLabel(data: HostRoomState) {
-  const winners = data.scoreboard.filter((entry) => data.game.winnerPlayerIds.includes(entry.playerId));
+  const winners = data.scoreboard.filter((entry) =>
+    data.game.winnerPlayerIds.includes(entry.playerId),
+  );
 
   if (winners.length === 0) {
     return null;
@@ -55,7 +79,10 @@ function RosterList({ data }: { data: HostRoomState }) {
             <p className="text-base font-semibold text-foreground">{player.displayName}</p>
             <p className="text-sm text-muted">{player.scoreTotal} pts</p>
           </div>
-          <StatusPill label={player.hasSubmitted ? "Submitted" : "Waiting"} tone={player.hasSubmitted ? "winner" : "neutral"} />
+          <StatusPill
+            label={player.hasSubmitted ? "Submitted" : "Waiting"}
+            tone={player.hasSubmitted ? "winner" : "neutral"}
+          />
         </div>
       ))}
 
@@ -105,7 +132,9 @@ function HostRoundBody({
   const secondsRemaining = useRoomCountdown(round?.locksAt, round?.serverNow);
   const roundCapValue = maxRounds === null ? "unlimited" : String(maxRounds);
   const winnerLabel = data.game.isGameOver ? getWinnerLabel(data) : null;
-  const scoringSummary = round?.results ? buildRoundScoringSummary(round.results.revealedGuesses) : null;
+  const scoringSummary = round?.results
+    ? buildRoundScoringSummary(round.results.revealedGuesses)
+    : null;
   const hasExactHit = round?.results?.revealedGuesses.some((result) => result.isExact) ?? false;
 
   if (!round) {
@@ -157,11 +186,16 @@ function HostRoundBody({
             <span className="text-sm font-semibold text-foreground">Game length</span>
             <select
               value={roundCapValue}
-              onChange={(event) => setMaxRounds(event.target.value === "unlimited" ? null : Number(event.target.value))}
+              onChange={(event) =>
+                setMaxRounds(event.target.value === "unlimited" ? null : Number(event.target.value))
+              }
               className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
             >
               {ROUND_CAP_OPTIONS.map((option) => (
-                <option key={option.label} value={option.value === null ? "unlimited" : option.value}>
+                <option
+                  key={option.label}
+                  value={option.value === null ? "unlimited" : option.value}
+                >
                   {option.label}
                 </option>
               ))}
@@ -190,11 +224,25 @@ function HostRoundBody({
             <StatusPill label={formatPackLabel(round.pack)} />
             <StatusPill label={formatGameLengthLabel(data.game.maxRounds)} />
             <StatusPill
-              label={round.phase === "open" ? "Collecting guesses" : round.phase === "locked" ? "Locked" : "Revealed"}
-              tone={round.phase === "revealed" ? "winner" : round.phase === "locked" ? "cool" : "neutral"}
+              label={
+                round.phase === "open"
+                  ? "Collecting guesses"
+                  : round.phase === "locked"
+                    ? "Locked"
+                    : "Revealed"
+              }
+              tone={
+                round.phase === "revealed"
+                  ? "winner"
+                  : round.phase === "locked"
+                    ? "cool"
+                    : "neutral"
+              }
             />
           </div>
-          <h2 className="mt-4 font-serif text-4xl text-foreground sm:text-5xl">{round.promptText}</h2>
+          <h2 className="mt-4 font-serif text-4xl text-foreground sm:text-5xl">
+            {round.promptText}
+          </h2>
           <p className="mt-3 text-lg text-muted">
             Units: {round.promptUnitLabel}
             {round.hintText ? ` · ${round.hintText}` : ""}
@@ -265,8 +313,8 @@ function HostRoundBody({
             </button>
           ) : round.phase !== "revealed" ? (
             <div className="rounded-[1.75rem] border border-line bg-white/55 p-5 text-sm leading-7 text-muted">
-              The host only sees submission status before reveal. Guess values stay hidden until the round is scored and
-              revealed.
+              The host only sees submission status before reveal. Guess values stay hidden until the
+              round is scored and revealed.
             </div>
           ) : null}
         </div>
@@ -283,8 +331,8 @@ function HostRoundBody({
                   : "Game ended without a winner."}
               </h3>
               <p className="mt-3 text-lg text-muted">
-                Final score after {data.game.maxRounds} rounds. Start a new game to reset the scoreboard and replay
-                with the same room.
+                Final score after {data.game.maxRounds} rounds. Start a new game to reset the
+                scoreboard and replay with the same room.
               </p>
             </div>
           ) : null}
@@ -300,11 +348,15 @@ function HostRoundBody({
             </h3>
             {scoringSummary ? <p className="mt-3 text-lg text-muted">{scoringSummary}</p> : null}
             {hasExactHit ? (
-              <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-sm font-semibold uppercase tracking-[0.18em] text-accent-cool`}>
+              <p
+                className={`${scoringSummary ? "mt-2" : "mt-3"} text-sm font-semibold uppercase tracking-[0.18em] text-accent-cool`}
+              >
                 Exact hit bonus applied: {formatPointsAwarded(EXACT_BONUS_POINTS)} per exact guess
               </p>
             ) : null}
-            <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-lg text-muted`}>Answer: {round.results.answerDisplay}</p>
+            <p className={`${scoringSummary ? "mt-2" : "mt-3"} text-lg text-muted`}>
+              Answer: {round.results.answerDisplay}
+            </p>
           </div>
 
           <ResultNumberLine
@@ -327,9 +379,9 @@ function HostRoundBody({
                       ? "border-winner/30 bg-winner/10"
                       : result.pointsAwarded > 0
                         ? "border-accent-cool/30 bg-accent-cool/10"
-                      : result.isBust
-                        ? "border-bust/30 bg-bust/10"
-                        : "border-line bg-white/60"
+                        : result.isBust
+                          ? "border-bust/30 bg-bust/10"
+                          : "border-line bg-white/60"
                   }`}
                 >
                   <div>
@@ -338,7 +390,9 @@ function HostRoundBody({
                   </div>
                   <div className="flex items-center gap-3">
                     {result.pointsAwarded > 0 ? (
-                      <p className="text-lg font-semibold text-foreground">{formatPointsAwarded(result.pointsAwarded)}</p>
+                      <p className="text-lg font-semibold text-foreground">
+                        {formatPointsAwarded(result.pointsAwarded)}
+                      </p>
                     ) : null}
                     <StatusPill label={getResultBadgeLabel(result)} tone={getResultTone(result)} />
                   </div>
@@ -418,7 +472,11 @@ export function HostRoomScreen({ slug }: { slug: string }) {
     null;
 
   if (roomQuery.isPending) {
-    return <div className="rounded-[2rem] border border-line bg-white/70 p-8 text-lg text-muted">Loading room…</div>;
+    return (
+      <div className="rounded-[2rem] border border-line bg-white/70 p-8 text-lg text-muted">
+        Loading room…
+      </div>
+    );
   }
 
   if (roomQuery.isError) {
@@ -446,15 +504,19 @@ export function HostRoomScreen({ slug }: { slug: string }) {
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-muted">Host console</p>
-              <h1 className="mt-3 font-serif text-4xl text-foreground sm:text-5xl">{data.room.title}</h1>
+              <h1 className="mt-3 font-serif text-4xl text-foreground sm:text-5xl">
+                {data.room.title}
+              </h1>
               <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-                Keep this screen on the shared display. Players join from their own devices and only see their own
-                guesses until reveal.
+                Keep this screen on the shared display. Players join from their own devices and only
+                see their own guesses until reveal.
               </p>
             </div>
             <div className="rounded-[1.75rem] border border-accent/20 bg-white/70 px-5 py-4">
               <p className="text-xs uppercase tracking-[0.24em] text-muted">Join code</p>
-              <p className="mt-2 text-4xl font-semibold tracking-[0.16em] text-foreground">{data.room.joinCode}</p>
+              <p className="mt-2 text-4xl font-semibold tracking-[0.16em] text-foreground">
+                {data.room.joinCode}
+              </p>
             </div>
           </div>
         </section>
@@ -478,7 +540,9 @@ export function HostRoomScreen({ slug }: { slug: string }) {
         />
 
         {activeError ? (
-          <p className="rounded-[1.75rem] border border-bust/30 bg-bust/10 px-4 py-3 text-sm text-bust">{activeError}</p>
+          <p className="rounded-[1.75rem] border border-bust/30 bg-bust/10 px-4 py-3 text-sm text-bust">
+            {activeError}
+          </p>
         ) : null}
       </div>
 
