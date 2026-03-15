@@ -1,6 +1,5 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ResultNumberLine } from "./result-number-line";
 import { Scoreboard } from "./scoreboard";
@@ -63,12 +62,12 @@ function getWinnerLabel(data: PlayerRoomState) {
 }
 
 export function PlayerRoomScreen({ slug }: { slug: string }) {
-  const queryClient = useQueryClient();
   const roomQuery = usePlayerRoomState(slug);
   const [draftGuessesByRound, setDraftGuessesByRound] = useState<Record<string, string>>({});
   const roomData = roomQuery.data;
   const roundId = roomData?.currentRound?.id ?? "";
-  const submitGuessMutation = useSubmitGuess(roundId, slug);
+  const promptRevision = roomData?.currentRound?.promptRevision ?? 0;
+  const submitGuessMutation = useSubmitGuess(roundId, promptRevision, slug);
   const secondsRemaining = useRoomCountdown(
     roomData?.currentRound?.locksAt,
     roomData?.currentRound?.serverNow,
@@ -99,8 +98,9 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
   }
 
   const round = roomData.currentRound;
+  const draftGuessKey = round ? `${round.id}:${round.promptRevision}` : "";
   const draftGuess = round
-    ? (draftGuessesByRound[round.id] ?? roomData.myGuess?.guessRaw ?? "")
+    ? (draftGuessesByRound[draftGuessKey] ?? roomData.myGuess?.guessRaw ?? "")
     : "";
   const winnerLabel = roomData.game.isGameOver ? getWinnerLabel(roomData) : null;
   const scoringSummary = round?.results
@@ -183,15 +183,16 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
               className="mt-8 grid min-w-0 gap-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                submitGuessMutation.mutate(draftGuess, {
-                  onSuccess: async () => {
-                    await queryClient.invalidateQueries({
-                      queryKey: ["cwogo", "player-room", slug],
-                    });
-                  },
-                });
+                submitGuessMutation.mutate(draftGuess);
               }}
             >
+              {round.promptRevision > 0 ? (
+                <StatusBanner>
+                  The host swapped in a new prompt. Earlier guesses were cleared and the timer
+                  restarted.
+                </StatusBanner>
+              ) : null}
+
               <label className="grid min-w-0 gap-2">
                 <span className="text-sm font-semibold text-foreground">Your guess</span>
                 <input
@@ -203,7 +204,7 @@ export function PlayerRoomScreen({ slug }: { slug: string }) {
 
                     setDraftGuessesByRound((current) => ({
                       ...current,
-                      [round.id]: event.target.value,
+                      [draftGuessKey]: event.target.value,
                     }));
                   }}
                   inputMode="decimal"

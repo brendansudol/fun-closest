@@ -104,10 +104,12 @@ function HostRoundBody({
   maxRounds,
   setMaxRounds,
   onStart,
+  onSwap,
   onLock,
   onReveal,
   onReset,
   startPending,
+  swapPending,
   lockPending,
   revealPending,
   resetPending,
@@ -120,10 +122,12 @@ function HostRoundBody({
   maxRounds: number | null;
   setMaxRounds: (value: number | null) => void;
   onStart: () => void;
+  onSwap: () => void;
   onLock: () => void;
   onReveal: () => void;
   onReset: () => void;
   startPending: boolean;
+  swapPending: boolean;
   lockPending: boolean;
   revealPending: boolean;
   resetPending: boolean;
@@ -281,14 +285,34 @@ function HostRoundBody({
           ) : null}
 
           {round.phase === "open" ? (
-            <button
-              type="button"
-              onClick={onLock}
-              disabled={lockPending}
-              className="inline-flex min-h-14 items-center justify-center rounded-full border border-foreground/10 bg-foreground px-6 text-lg font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {lockPending ? "Locking..." : "Lock now"}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    round.submittedCount > 0 &&
+                    !window.confirm("Swap to a new prompt? This clears saved guesses and restarts the timer.")
+                  ) {
+                    return;
+                  }
+
+                  onSwap();
+                }}
+                disabled={swapPending || lockPending}
+                className="inline-flex min-h-14 items-center justify-center rounded-full border border-accent/30 bg-white/80 px-6 text-lg font-semibold text-accent-deep hover:border-accent disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {swapPending ? "Swapping..." : "Swap prompt"}
+              </button>
+
+              <button
+                type="button"
+                onClick={onLock}
+                disabled={lockPending || swapPending}
+                className="inline-flex min-h-14 items-center justify-center rounded-full border border-foreground/10 bg-foreground px-6 text-lg font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {lockPending ? "Locking..." : "Lock now"}
+              </button>
+            </>
           ) : null}
 
           {round.phase === "locked" ? (
@@ -444,6 +468,16 @@ export function HostRoomScreen({ slug }: { slug: string }) {
     },
   });
 
+  const swapMutation = useMutation({
+    mutationFn: () =>
+      requestJson(`/api/cwogo/rooms/${slug}/host/swap`, {
+        method: "POST",
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["cwogo", "host-room", slug] });
+    },
+  });
+
   const revealMutation = useMutation({
     mutationFn: () =>
       requestJson(`/api/cwogo/rooms/${slug}/host/reveal`, {
@@ -466,6 +500,7 @@ export function HostRoomScreen({ slug }: { slug: string }) {
 
   const activeError =
     (startMutation.isError && startMutation.error.message) ||
+    (swapMutation.isError && swapMutation.error.message) ||
     (lockMutation.isError && lockMutation.error.message) ||
     (revealMutation.isError && revealMutation.error.message) ||
     (resetMutation.isError && resetMutation.error.message) ||
@@ -530,10 +565,12 @@ export function HostRoomScreen({ slug }: { slug: string }) {
           maxRounds={activeMaxRounds}
           setMaxRounds={setMaxRounds}
           onStart={() => startMutation.mutate()}
+          onSwap={() => swapMutation.mutate()}
           onLock={() => lockMutation.mutate()}
           onReveal={() => revealMutation.mutate()}
           onReset={() => resetMutation.mutate()}
           startPending={startMutation.isPending}
+          swapPending={swapMutation.isPending}
           lockPending={lockMutation.isPending}
           revealPending={revealMutation.isPending}
           resetPending={resetMutation.isPending}

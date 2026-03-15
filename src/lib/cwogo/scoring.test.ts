@@ -338,6 +338,71 @@ describe("serializeHostState", () => {
       "1990",
       "1994",
     ]);
+    expect(hostState.currentRound?.promptRevision).toBe(0);
+    expect(playerState.currentRound?.promptRevision).toBe(0);
     expect(playerState.myGuess?.displayGuess).toBe("1991");
+  });
+
+  it("serializes prompt revision from prompt history when a round has been rerolled", () => {
+    const room: CwogoRoomStore = {
+      id: "room-1",
+      slug: "room-1",
+      joinCode: "ABC123",
+      title: "Test Room",
+      adminTokenHash: "host",
+      currentRoundId: "round-1",
+      defaultPack: "mixed",
+      defaultRoundSeconds: 25,
+      maxRounds: 5,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    const round: CwogoRoundStore = {
+      id: "round-1",
+      roomId: room.id,
+      roundNumber: 1,
+      phase: "open",
+      promptId: "prompt-3",
+      promptHistoryIds: ["prompt-1", "prompt-2", "prompt-3"],
+      promptText: "How far?",
+      promptUnitLabel: "miles",
+      promptUnitShort: "mi",
+      answerNumeric: 100,
+      answerDisplay: "100 mi",
+      hintText: null,
+      pack: "mixed",
+      category: "Distance",
+      difficulty: 2,
+      opensAt: "2026-01-01T00:00:10.000Z",
+      locksAt: "2026-01-01T00:00:35.000Z",
+      lockedAt: null,
+      revealedAt: null,
+      scoreApplied: false,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    };
+    const players: CwogoPlayerStore[] = [
+      {
+        id: "p1",
+        roomId: room.id,
+        displayName: "Alice",
+        sessionTokenHash: "token-1",
+        scoreTotal: 0,
+        joinedAt: "2026-01-01T00:00:00.000Z",
+        lastSeenAt: "2026-01-01T00:00:12.000Z",
+        isActive: true,
+      },
+    ];
+
+    const hostState = serializeHostState({
+      room,
+      roomVersion: 1,
+      round,
+      rounds: [round],
+      players,
+      guesses: [],
+      serverNow: "2026-01-01T00:00:12.000Z",
+    });
+
+    expect(hostState.currentRound?.promptRevision).toBe(2);
   });
 });
