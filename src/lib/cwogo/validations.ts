@@ -7,7 +7,7 @@ import {
   MIN_ROUND_SECONDS,
 } from "./constants";
 
-export const packSchema = z.enum(["mixed", "geography", "tech", "us"]);
+export const packSchema = z.enum(["mixed", "geography", "tech", "us", "space", "sports"]);
 
 const maxRoundsSchema = z
   .number()

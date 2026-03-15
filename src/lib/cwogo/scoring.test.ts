@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { serializeHostState, serializePlayerState } from "./serializers";
 import { scoreGuessRows } from "./scoring";
+import { EXACT_BONUS_POINTS } from "./constants";
 import type { CwogoGuessStore, CwogoPlayerStore, CwogoRoomStore, CwogoRoundStore } from "@/types/cwogo";
 
 function createGuess(playerNumber: number, guessNumeric: number): CwogoGuessStore {
@@ -89,16 +90,59 @@ describe("scoreGuessRows", () => {
     expect(emptyResult.scoredGuesses).toEqual([]);
   });
 
-  it("treats an exact match as first place without an extra bonus", () => {
-    const result = scoreGuessRows(100, [100, 99, 98, 97, 96].map((guess, index) => createGuess(index + 1, guess)));
+  it("adds the exact bonus in rounds with up to four submissions", () => {
+    const result = scoreGuessRows(100, [100, 99, 98, 97].map((guess, index) => createGuess(index + 1, guess)));
 
     expect(getResultById(result.scoredGuesses, "p1")).toMatchObject({
       rank: 1,
-      pointsAwarded: 2,
+      pointsAwarded: 1 + EXACT_BONUS_POINTS,
+      isWinner: true,
+      status: "exact",
+    });
+    expect(getResultById(result.scoredGuesses, "p2")).toMatchObject({ rank: 2, pointsAwarded: 0, isWinner: false });
+  });
+
+  it("adds the exact bonus in rounds with five to seven submissions", () => {
+    const result = scoreGuessRows(100, [100, 99, 98, 97, 96, 95].map((guess, index) => createGuess(index + 1, guess)));
+
+    expect(getResultById(result.scoredGuesses, "p1")).toMatchObject({
+      rank: 1,
+      pointsAwarded: 2 + EXACT_BONUS_POINTS,
       isWinner: true,
       status: "exact",
     });
     expect(getResultById(result.scoredGuesses, "p2")).toMatchObject({ rank: 2, pointsAwarded: 1, isWinner: false });
+  });
+
+  it("adds the exact bonus in rounds with eight or more submissions", () => {
+    const result = scoreGuessRows(100, [100, 99, 98, 97, 96, 95, 94, 93].map((guess, index) => createGuess(index + 1, guess)));
+
+    expect(getResultById(result.scoredGuesses, "p1")).toMatchObject({
+      rank: 1,
+      pointsAwarded: 3 + EXACT_BONUS_POINTS,
+      isWinner: true,
+      status: "exact",
+    });
+    expect(getResultById(result.scoredGuesses, "p2")).toMatchObject({ rank: 2, pointsAwarded: 2, isWinner: false });
+  });
+
+  it("awards the full exact bonus to every exact first-place tie", () => {
+    const result = scoreGuessRows(100, [100, 100, 97, 96, 95, 94, 93, 92].map((guess, index) => createGuess(index + 1, guess)));
+
+    expect(result.winnerPlayerIds).toEqual(["p1", "p2"]);
+    expect(getResultById(result.scoredGuesses, "p1")).toMatchObject({
+      rank: 1,
+      pointsAwarded: 3 + EXACT_BONUS_POINTS,
+      isWinner: true,
+      status: "exact",
+    });
+    expect(getResultById(result.scoredGuesses, "p2")).toMatchObject({
+      rank: 1,
+      pointsAwarded: 3 + EXACT_BONUS_POINTS,
+      isWinner: true,
+      status: "exact",
+    });
+    expect(getResultById(result.scoredGuesses, "p3")).toMatchObject({ rank: 3, pointsAwarded: 1, isWinner: false });
   });
 });
 
