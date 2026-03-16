@@ -1,4 +1,4 @@
-export type Pack = "mixed" | "geography" | "tech" | "us" | "space" | "sports";
+export type Pack = "mixed" | "geography" | "tech" | "us" | "space" | "sports" | "other";
 
 export type RoundPhase = "open" | "locked" | "revealed";
 

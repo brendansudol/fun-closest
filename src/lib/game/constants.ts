@@ -48,6 +48,11 @@ export const PACK_OPTIONS: Array<{ value: Pack; label: string; description: stri
     label: "Sports",
     description: "Official rules, dimensions, and game-day numbers.",
   },
+  {
+    value: "other",
+    label: "Other",
+    description: "Imported one-offs, culture, history, and grab-bag trivia.",
+  },
 ];
 
 export const PACK_LABELS: Record<Pack, string> = PACK_OPTIONS.reduce<Record<Pack, string>>(
@@ -62,5 +67,6 @@ export const PACK_LABELS: Record<Pack, string> = PACK_OPTIONS.reduce<Record<Pack
     us: "US",
     space: "Space",
     sports: "Sports",
+    other: "Other",
   },
 );

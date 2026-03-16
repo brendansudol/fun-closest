@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listUsedPromptIdsForRounds, selectRandomPrompt } from "./prompt-selection";
+import { buildPromptPool, listUsedPromptIdsForRounds, selectRandomPrompt } from "./prompt-selection";
 import type { RoundStore, Prompt } from "@/types/game";
 
 function createPrompt(id: string, pack: Prompt["pack"] = "mixed"): Prompt {
@@ -16,6 +16,27 @@ function createPrompt(id: string, pack: Prompt["pack"] = "mixed"): Prompt {
 }
 
 describe("selectRandomPrompt", () => {
+  it("returns only prompts from the requested other pack", () => {
+    const pool = buildPromptPool("other", [
+      createPrompt("mixed-a", "mixed"),
+      createPrompt("other-a", "other"),
+      createPrompt("tech-a", "tech"),
+      createPrompt("other-b", "other"),
+    ]);
+
+    expect(pool.map((prompt) => prompt.id)).toEqual(["other-a", "other-b"]);
+  });
+
+  it("keeps other-pack prompts eligible in mixed games", () => {
+    const pool = buildPromptPool("mixed", [
+      createPrompt("mixed-a", "mixed"),
+      createPrompt("other-a", "other"),
+      createPrompt("tech-a", "tech"),
+    ]);
+
+    expect(pool.map((prompt) => prompt.id)).toEqual(["mixed-a", "other-a", "tech-a"]);
+  });
+
   it("prefers prompts not used anywhere in the room yet", () => {
     const selectedPrompt = selectRandomPrompt({
       pool: [createPrompt("a"), createPrompt("b"), createPrompt("c")],
