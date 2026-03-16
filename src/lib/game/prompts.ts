@@ -1,4 +1,5 @@
 import { formatNumericValue, formatPromptNumericValue } from "./format";
+import { otherPrompts } from "./other-prompts";
 import { validatePromptBank } from "./prompt-validation.js";
 import type { Prompt } from "../../types/game";
 
@@ -1334,5 +1335,6 @@ export const PROMPTS: Prompt[] = validatePromptBank([
   ...usPrompts,
   ...spacePrompts,
   ...sportsPrompts,
+  ...otherPrompts,
   ...mixedOnlyPrompts,
 ]);

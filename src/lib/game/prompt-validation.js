@@ -5,6 +5,7 @@ const PROMPT_COUNT_MINIMUMS = {
   space: 12,
   sports: 12,
   mixed: 12,
+  other: 12,
 };
 
 function normalizePromptText(value) {
@@ -43,6 +44,7 @@ export function validatePromptBank(prompts) {
     space: 0,
     sports: 0,
     mixed: 0,
+    other: 0,
   };
 
   for (const prompt of prompts) {
@@ -136,6 +138,7 @@ export function summarizePromptBank(prompts) {
         space: 0,
         sports: 0,
         mixed: 0,
+        other: 0,
       },
     },
   );
