@@ -3,9 +3,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PACK_OPTIONS, ROUND_CAP_OPTIONS, ROUND_LENGTH_OPTIONS } from "@/lib/cwogo/constants";
+import { DEFAULT_ROUND_SECONDS } from "@/lib/cwogo/constants";
 import { requestJson } from "@/lib/cwogo/fetcher";
-import type { Pack } from "@/types/cwogo";
 
 type CreateRoomResponse = {
   roomSlug: string;
@@ -13,13 +12,13 @@ type CreateRoomResponse = {
   hostUrl: string;
 };
 
+const DEFAULT_CREATE_PACK = "mixed";
+const DEFAULT_CREATE_MAX_ROUNDS = 10;
+
 export function CreateRoomForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [joinCode, setJoinCode] = useState("");
-  const [defaultPack, setDefaultPack] = useState<Pack>("mixed");
-  const [defaultRoundSeconds, setDefaultRoundSeconds] = useState(30);
-  const [maxRounds, setMaxRounds] = useState<number | null>(10);
 
   const createRoomMutation = useMutation({
     mutationFn: () =>
@@ -27,17 +26,15 @@ export function CreateRoomForm() {
         method: "POST",
         body: JSON.stringify({
           title,
-          defaultPack,
-          defaultRoundSeconds,
-          maxRounds,
+          defaultPack: DEFAULT_CREATE_PACK,
+          defaultRoundSeconds: DEFAULT_ROUND_SECONDS,
+          maxRounds: DEFAULT_CREATE_MAX_ROUNDS,
         }),
       }),
     onSuccess: (payload) => {
       router.push(payload.hostUrl);
     },
   });
-
-  const roundCapValue = maxRounds === null ? "unlimited" : String(maxRounds);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -69,53 +66,6 @@ export function CreateRoomForm() {
               className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
             />
           </label>
-
-          <div className="grid gap-5 md:grid-cols-3">
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold text-foreground">Prompt pack</span>
-              <select
-                value={defaultPack}
-                onChange={(event) => setDefaultPack(event.target.value as Pack)}
-                className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
-              >
-                {PACK_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold text-foreground">Round length</span>
-              <select
-                value={defaultRoundSeconds}
-                onChange={(event) => setDefaultRoundSeconds(Number(event.target.value))}
-                className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
-              >
-                {ROUND_LENGTH_OPTIONS.map((seconds) => (
-                  <option key={seconds} value={seconds}>
-                    {seconds} seconds
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold text-foreground">Game length</span>
-              <select
-                value={roundCapValue}
-                onChange={(event) => setMaxRounds(event.target.value === "unlimited" ? null : Number(event.target.value))}
-                className="rounded-2xl border border-line bg-white/70 px-4 py-3 text-base outline-none focus:border-accent"
-              >
-                {ROUND_CAP_OPTIONS.map((option) => (
-                  <option key={option.label} value={option.value === null ? "unlimited" : option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
 
           <button
             type="submit"
