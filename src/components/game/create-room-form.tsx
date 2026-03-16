@@ -36,20 +36,20 @@ export function CreateRoomForm() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-      <section className="glass-card rounded-[2.25rem] p-6 sm:p-8">
+      <section className="glass-card flex h-full flex-col rounded-[2.25rem] p-6 sm:p-8">
         <div className="mb-8 max-w-2xl">
           <p className="text-xs uppercase tracking-[0.28em] text-muted">Host a room</p>
           <h1 className="mt-3 font-serif text-5xl leading-none text-foreground sm:text-6xl">
             Inkling.
           </h1>
           <p className="mt-4 max-w-xl text-lg leading-8 text-muted">
-            Spin up a room, throw a number prompt on the shared screen, and let everyone submit
-            private estimates from their phones. Nothing leaks until reveal.
+            Spin up a room, show a question on the shared screen, and let everyone submit private
+            guesses from their phones. The closest without going over wins the round.
           </p>
         </div>
 
         <form
-          className="grid gap-5"
+          className="mt-auto grid gap-5"
           onSubmit={(event) => {
             event.preventDefault();
             createRoomMutation.mutate();
