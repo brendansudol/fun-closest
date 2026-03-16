@@ -15,7 +15,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Closest Without Going Over",
+  title: "Inkling",
   description: "A meeting-sized multiplayer estimation game with secret guesses.",
 };
 

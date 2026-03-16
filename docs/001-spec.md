@@ -1,4 +1,4 @@
-# Closest Without Going Over (CWOGO)
+# Inkling
 ## Product + Implementation Spec
 
 Version: v1
@@ -332,14 +332,14 @@ Why:
 
 ```text
 app/
-  cwogo/
+  inkling/
     page.tsx                         # landing / create room
     join/[code]/page.tsx             # public join page
     rooms/[slug]/host/page.tsx       # host screen
     rooms/[slug]/play/page.tsx       # player screen
 
   api/
-    cwogo/
+    inkling/
       rooms/route.ts                 # POST create room
       join/route.ts                  # POST join room
       rooms/[slug]/state/route.ts    # GET room state (role-aware)
@@ -366,7 +366,7 @@ That makes Route Handlers cleaner than trying to model everything as forms.
 
 Use Postgres enums or text enums enforced in app logic.
 
-### `cwogo_rooms`
+### `game_rooms`
 
 - `id uuid pk`
 - `slug text unique not null`
@@ -379,10 +379,10 @@ Use Postgres enums or text enums enforced in app logic.
 - `created_at timestamptz not null default now()`
 - `updated_at timestamptz not null default now()`
 
-### `cwogo_players`
+### `game_players`
 
 - `id uuid pk`
-- `room_id uuid not null references cwogo_rooms(id)`
+- `room_id uuid not null references game_rooms(id)`
 - `display_name text not null`
 - `session_token_hash text not null unique`
 - `score_total int not null default 0`
@@ -394,10 +394,10 @@ Index:
 - `(room_id)`
 - `(room_id, is_active)`
 
-### `cwogo_rounds`
+### `game_rounds`
 
 - `id uuid pk`
-- `room_id uuid not null references cwogo_rooms(id)`
+- `room_id uuid not null references game_rooms(id)`
 - `round_number int not null`
 - `phase text not null`  // `draft | open | locked | revealed`
 - `prompt_id uuid null`
@@ -422,11 +422,11 @@ Unique:
 Index:
 - `(room_id, phase)`
 
-### `cwogo_guesses`
+### `game_guesses`
 
 - `id uuid pk`
-- `round_id uuid not null references cwogo_rounds(id)`
-- `player_id uuid not null references cwogo_players(id)`
+- `round_id uuid not null references game_rounds(id)`
+- `player_id uuid not null references game_players(id)`
 - `guess_numeric numeric(20,4) not null`
 - `guess_raw text not null`
 - `submitted_at timestamptz not null default now()`
@@ -443,7 +443,7 @@ Index:
 - `(round_id)`
 - `(round_id, is_winner)`
 
-### `cwogo_prompts` (optional DB-backed prompt bank)
+### `game_prompts` (optional DB-backed prompt bank)
 
 - `id uuid pk`
 - `pack text not null`
@@ -508,7 +508,7 @@ This prevents bugs when the host tab is backgrounded or asleep.
 
 ## 11) API contract
 
-## `POST /api/cwogo/rooms`
+## `POST /api/inkling/rooms`
 Create room.
 
 Request:
@@ -530,11 +530,11 @@ Response:
 {
   "roomSlug": "c7m4kq8r",
   "joinCode": "7K3M9Q",
-  "hostUrl": "/cwogo/rooms/c7m4kq8r/host"
+  "hostUrl": "/inkling/rooms/c7m4kq8r/host"
 }
 ```
 
-## `POST /api/cwogo/join`
+## `POST /api/inkling/join`
 Join room as player.
 
 Request:
@@ -554,11 +554,11 @@ Response:
 ```json
 {
   "roomSlug": "c7m4kq8r",
-  "playerUrl": "/cwogo/rooms/c7m4kq8r/play"
+  "playerUrl": "/inkling/rooms/c7m4kq8r/play"
 }
 ```
 
-## `GET /api/cwogo/rooms/[slug]/state`
+## `GET /api/inkling/rooms/[slug]/state`
 Returns role-aware room state.
 
 Query params:
@@ -590,7 +590,7 @@ Behavior:
 ### Any response after reveal
 - full results + winners + scoreboard
 
-## `POST /api/cwogo/rooms/[slug]/host/start`
+## `POST /api/inkling/rooms/[slug]/host/start`
 Starts a new round.
 
 Request:
@@ -609,7 +609,7 @@ Behavior:
 - set current round
 - phase becomes `open`
 
-## `POST /api/cwogo/rounds/[roundId]/guess`
+## `POST /api/inkling/rounds/[roundId]/guess`
 Submit or update guess.
 
 Request:
@@ -634,7 +634,7 @@ Response:
 }
 ```
 
-## `POST /api/cwogo/rooms/[slug]/host/lock`
+## `POST /api/inkling/rooms/[slug]/host/lock`
 Locks round early or finalizes an expired round.
 
 Behavior:
@@ -643,7 +643,7 @@ Behavior:
 - transactionally marks round locked
 - scores all guesses
 
-## `POST /api/cwogo/rooms/[slug]/host/reveal`
+## `POST /api/inkling/rooms/[slug]/host/reveal`
 Marks round revealed.
 
 Behavior:
@@ -910,14 +910,14 @@ Examples:
 ```text
 src/
   app/
-    cwogo/
+    inkling/
       page.tsx
       join/[code]/page.tsx
       rooms/[slug]/host/page.tsx
       rooms/[slug]/play/page.tsx
-    api/cwogo/...
+    api/inkling/...
 
-  components/cwogo/
+  components/game/
     host-lobby.tsx
     host-round-open.tsx
     host-round-locked.tsx
@@ -930,7 +930,7 @@ src/
     scoreboard.tsx
     qr-join-card.tsx
 
-  lib/cwogo/
+  lib/game/
     auth.ts
     cookies.ts
     prompts.ts
@@ -954,7 +954,7 @@ src/
     use-submit-guess.ts
 
   types/
-    cwogo.ts
+    game.ts
 ```
 
 ---

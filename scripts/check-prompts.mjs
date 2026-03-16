@@ -1,5 +1,5 @@
-import { PROMPTS } from "../src/lib/cwogo/prompts.ts";
-import { summarizePromptBank } from "../src/lib/cwogo/prompt-validation.js";
+import { PROMPTS } from "../src/lib/game/prompts.ts";
+import { summarizePromptBank } from "../src/lib/game/prompt-validation.js";
 
 const summary = summarizePromptBank(PROMPTS);
 

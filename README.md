@@ -1,4 +1,4 @@
-# Closest Without Going Over
+# Inkling
 
 Multiplayer estimation game built from the spec in [`docs/001-spec.md`](./docs/001-spec.md).
 
@@ -59,7 +59,7 @@ pnpm dev
 Open:
 
 ```text
-http://localhost:3000/cwogo
+http://localhost:3000/inkling
 ```
 
 ## How to play locally
@@ -71,8 +71,8 @@ Use separate browser contexts because sessions are cookie-based.
 
 Basic flow:
 
-1. Create a room from `/cwogo`.
-2. Join from `/cwogo/join/[code]` in a different browser context.
+1. Create a room from `/inkling`.
+2. Join from `/inkling/join/[code]` in a different browser context.
 3. Start a round on the host screen.
 4. Submit a guess from the player screen.
 5. Lock and reveal from the host screen.
@@ -106,7 +106,7 @@ Then open your machine's LAN IP from the phone.
 
 Because state lives in Neon now, resetting data means clearing database contents rather than deleting a local file.
 
-At the moment, the app auto-creates one table named `cwogo_state`.
+At the moment, the app auto-creates one table named `game_state`.
 
 If you need a hard reset, delete rows from that table intentionally against the configured `DATABASE_URL`.
 
@@ -123,11 +123,11 @@ pnpm build
 ## Project structure
 
 ```text
-src/app/cwogo/                    UI routes
-src/app/api/cwogo/               Route handlers
-src/components/cwogo/            Host/player UI
+src/app/inkling/                    UI routes
+src/app/api/inkling/               Route handlers
+src/components/game/            Host/player UI
 src/hooks/                       Polling and mutations
-src/lib/cwogo/                   Game logic, auth, serializers, store
-src/types/cwogo.ts               Shared types
+src/lib/game/                   Game logic, auth, serializers, store
+src/types/game.ts               Shared types
 docs/001-spec.md                 Product and implementation spec
 ```

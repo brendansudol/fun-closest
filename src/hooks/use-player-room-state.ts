@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { requestJson } from "@/lib/cwogo/fetcher";
-import type { PlayerRoomState } from "@/types/cwogo";
+import { requestJson } from "@/lib/game/fetcher";
+import type { PlayerRoomState } from "@/types/game";
 
 export function usePlayerRoomState(slug: string) {
   return useQuery({
-    queryKey: ["cwogo", "player-room", slug],
-    queryFn: () => requestJson<PlayerRoomState>(`/api/cwogo/rooms/${slug}/state`),
+    queryKey: ["game", "player-room", slug],
+    queryFn: () => requestJson<PlayerRoomState>(`/api/inkling/rooms/${slug}/state`),
     refetchInterval: (query) => {
       const data = query.state.data as PlayerRoomState | undefined;
 

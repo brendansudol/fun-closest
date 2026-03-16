@@ -23,15 +23,15 @@ The main flow is live now:
 
 ## Main implementation pieces
 
-- Backend game engine: `src/lib/cwogo/actions.ts`
-- Role-aware serializers: `src/lib/cwogo/serializers.ts`
-- Postgres-backed persistence layer: `src/lib/cwogo/store.ts`
-- Guess parsing: `src/lib/cwogo/parse-guess.ts`
-- Scoring logic: `src/lib/cwogo/scoring.ts`
-- Host UI: `src/components/cwogo/host-room-screen.tsx`
-- Player UI: `src/components/cwogo/player-room-screen.tsx`
-- App routes: `src/app/cwogo`
-- API routes: `src/app/api/cwogo`
+- Backend game engine: `src/lib/game/actions.ts`
+- Role-aware serializers: `src/lib/game/serializers.ts`
+- Postgres-backed persistence layer: `src/lib/game/store.ts`
+- Guess parsing: `src/lib/game/parse-guess.ts`
+- Scoring logic: `src/lib/game/scoring.ts`
+- Host UI: `src/components/game/host-room-screen.tsx`
+- Player UI: `src/components/game/player-room-screen.tsx`
+- App routes: `src/app/inkling`
+- API routes: `src/app/api/inkling`
 
 ## What is implemented
 
@@ -94,7 +94,7 @@ Reason:
 To test the game manually:
 
 1. Run `pnpm dev`
-2. Open `http://localhost:3000/cwogo`
+2. Open `http://localhost:3000/inkling`
 3. Use one browser window for the host
 4. Use incognito windows, another browser, or another device for players
 
