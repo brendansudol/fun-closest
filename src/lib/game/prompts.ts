@@ -248,17 +248,6 @@ const geographyPrompts: Prompt[] = [
     sourceLabel: "Government of Canada",
   }),
   definePrompt({
-    id: "geo-greece-islands",
-    pack: "geography",
-    category: "Count",
-    promptText: "Islands, islets, and rocky islets in Greece",
-    unitLabel: "islands",
-    unitShort: "islands",
-    answerNumeric: 6_000,
-    difficulty: 3,
-    sourceLabel: "Visit Greece",
-  }),
-  definePrompt({
     id: "geo-commonwealth-members",
     pack: "geography",
     category: "Count",

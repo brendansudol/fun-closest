@@ -39,11 +39,13 @@ describe("otherPrompts", () => {
   });
 
   it("applies light cleanup to obvious text issues", () => {
-    const prompt = findPrompt("Southwest Airlines");
+    const prompt = findPrompt("Raging Bull");
 
-    expect(prompt.promptText).toBe("As of January 2005, how many cities did Southwest Airlines serve?");
-    expect(prompt.unitLabel).toBe("cities");
-    expect(prompt.unitShort).toBe("cities");
-    expect(prompt.answerYear).toBe(2005);
+    expect(prompt.promptText).toBe('How many pounds did Robert De Niro gain for his role as a boxer in the 1980 film "Raging Bull"?');
+  });
+
+  it("excludes imported prompts that do not fit the live game", () => {
+    expect(otherPrompts.some((prompt) => prompt.promptText.includes("Southwest Airlines"))).toBe(false);
+    expect(otherPrompts.some((prompt) => prompt.promptText.includes("Princess Diana"))).toBe(false);
   });
 });
