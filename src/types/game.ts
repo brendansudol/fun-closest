@@ -1,4 +1,16 @@
-export type Pack = "mixed" | "geography" | "tech" | "us" | "space" | "sports" | "other";
+export type Pack =
+  | "mixed"
+  | "geography"
+  | "tech"
+  | "us"
+  | "space"
+  | "sports"
+  | "culture"
+  | "nature"
+  | "transportation"
+  | "body"
+  | "everyday"
+  | "other";
 
 export type RoundPhase = "open" | "locked" | "revealed";
 
