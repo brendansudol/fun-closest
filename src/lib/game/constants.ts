@@ -49,9 +49,34 @@ export const PACK_OPTIONS: Array<{ value: Pack; label: string; description: stri
     description: "Official rules, dimensions, and game-day numbers.",
   },
   {
+    value: "culture",
+    label: "Culture",
+    description: "Awards, literature, music, museums, and arts trivia.",
+  },
+  {
+    value: "nature",
+    label: "Nature",
+    description: "Animals, weather, oceans, and natural-world facts.",
+  },
+  {
+    value: "transportation",
+    label: "Transportation",
+    description: "Bridges, tunnels, aircraft, rail, and infrastructure facts.",
+  },
+  {
+    value: "body",
+    label: "Human Body",
+    description: "Anatomy, health, pregnancy, and biology basics.",
+  },
+  {
+    value: "everyday",
+    label: "Food & Everyday",
+    description: "Kitchen measures, packaging, nutrition, and household standards.",
+  },
+  {
     value: "other",
     label: "Other",
-    description: "Imported one-offs, culture, history, and grab-bag trivia.",
+    description: "Imported one-offs, history, and grab-bag trivia.",
   },
 ];
 
@@ -67,6 +92,11 @@ export const PACK_LABELS: Record<Pack, string> = PACK_OPTIONS.reduce<Record<Pack
     us: "US",
     space: "Space",
     sports: "Sports",
+    culture: "Culture",
+    nature: "Nature",
+    transportation: "Transportation",
+    body: "Human Body",
+    everyday: "Food & Everyday",
     other: "Other",
   },
 );

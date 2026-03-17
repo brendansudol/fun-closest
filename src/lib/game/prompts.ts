@@ -1,5 +1,12 @@
 import { formatNumericValue, formatPromptNumericValue } from "./format";
 import { otherPrompts } from "./other-prompts";
+import {
+  bodyPrompts,
+  culturePrompts,
+  everydayPrompts,
+  naturePrompts,
+  transportationPrompts,
+} from "./pack-expansion-prompts";
 import { validatePromptBank } from "./prompt-validation.js";
 import type { Prompt } from "../../types/game";
 
@@ -1856,6 +1863,11 @@ export const PROMPTS: Prompt[] = validatePromptBank([
   ...usPrompts,
   ...spacePrompts,
   ...sportsPrompts,
+  ...culturePrompts,
+  ...naturePrompts,
+  ...transportationPrompts,
+  ...bodyPrompts,
+  ...everydayPrompts,
   ...otherPrompts,
   ...mixedOnlyPrompts,
 ]);
