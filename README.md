@@ -1,5 +1,7 @@
 # Inkling
 
+**https://inkling.fun**
+
 Multiplayer estimation game built from the spec in [`docs/001-spec.md`](./docs/001-spec.md).
 
 Players join a room, submit secret numeric guesses, and the host reveals the round after lock. The winner is the closest guess that does not go over.

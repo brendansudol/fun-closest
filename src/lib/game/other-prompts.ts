@@ -1664,10 +1664,50 @@ const OTHER_PROMPT_SEEDS: ImportedPromptSeed[] = [
   }
 ];
 
+// These imported prompts are intentionally excluded from live play because
+// they are misleading, overly stale, tonally off, or too arbitrary to make
+// for a good estimation round.
+const EXCLUDED_OTHER_PROMPT_TEXTS = new Set([
+  "According to Blockbuster Inc., what percent of Americans watch the same movie each year as a part of their Christmas holiday tradition?",
+  "According to 2002 estimates, what is the average annual dollar salary of those employed in the New York City metropolitan area?",
+  "According to 2003 estimates, what percent of U.S. physicians are women?",
+  "According to a 2004 nationwide survey, what percent of Baby Boomers said that the best years of their lives would come after they retire?",
+  "According to 2002 estimates, what percent of U.S. workers with email access spend more than an hour per day on email?",
+  "As of January 2005, what is the highest dollar price ever paid for a baseball card?",
+  "As of 2005, how many Grammy Awards has Bob Dylan received?",
+  "As of January 2005, how many cities did Southwest Airlines serve?",
+  "As of May 2005, how many countries were members of the European Union?",
+  "According to a 2003 poll, what percent of U.S. adult internet users said their daily routines would be affected if they could no longer use the internet?",
+  "According to a 2004 nationwide poll, what percent of American teens said that a career as a doctor would be their ideal job?",
+  "According to a 2004 consumer survey, what percent of American families annually spend more than they earn?",
+  "How much did the average gallon of unleaded regular gasoline cost in the U.S. in 1976?",
+  "How many dollars did The Gutenberg Bible sell for at auction in 1987?",
+  'How many speaking roles were there in "The Lord of the Rings" movie trilogy?',
+  "How many liters of carbonated soft drinks did the average American drink in 2003?",
+  "How old was Princess Diana when she died in a 1997 car accident?",
+  "How many days long was the 1993 federal siege on the compound of the Branch Davidian cult near Waco, Texas?",
+  "How old was Lee Harvey Oswald when he fatally shot president John F. Kennedy?",
+  "In 2003, how many times did the average American use an ATM machine to withdraw cash?",
+  "In 2004, how many online purchases were made by the average 18 to 21-year-old in the U.S.?",
+  "In dollars, what were Wal-Mart's worldwide sales on the day after Thanksgiving in 2001?",
+  "Over the 5-year period from 2000 to 2004, what was the average number of movie theater screens in the U.S.?",
+  "Of the 435 seats in the U.S. House of Representatives, how many were held by Republicans in February 2005?",
+  "Stonehenge once consisted of over 60 stones. As of January 2005, how many of the remaining stones stand upright?",
+  "What percent of the applicants to the undergraduate program at Harvard University for the fall of 2005 were accepted?",
+  "What percent of U.S. federal government spending was allocated to the Department of Education over the 3-year period 2002 to 2004?",
+  "What percent of U.S. exports went to Canada over the 5-year period from 1999 to 2003?",
+  "What percent of U.S. video sales in 2002 were in DVD format, as opposed to VHS format?",
+]);
+
 const seenImportedIds = new Map<string, number>();
 
-export const otherPrompts: Prompt[] = OTHER_PROMPT_SEEDS.map((seed) => {
+export const otherPrompts: Prompt[] = OTHER_PROMPT_SEEDS.flatMap((seed) => {
   const promptText = cleanImportedPromptText(seed.question);
+
+  if (EXCLUDED_OTHER_PROMPT_TEXTS.has(promptText)) {
+    return [];
+  }
+
   const answerNumeric = normalizeImportedNumeric(seed);
   const metadata = inferPromptMetadata(promptText, seed.unit);
   const basePrompt = {
@@ -1681,18 +1721,20 @@ export const otherPrompts: Prompt[] = OTHER_PROMPT_SEEDS.map((seed) => {
   };
 
   if (seed.unit === "usd") {
-    return defineUsdPrompt(basePrompt);
+    return [defineUsdPrompt(basePrompt)];
   }
 
   if (seed.unit === "percent") {
-    return definePercentPrompt(basePrompt);
+    return [definePercentPrompt(basePrompt)];
   }
 
-  return definePrompt({
-    ...basePrompt,
-    unitLabel: metadata.unitLabel,
-    unitShort: metadata.unitShort,
-  });
+  return [
+    definePrompt({
+      ...basePrompt,
+      unitLabel: metadata.unitLabel,
+      unitShort: metadata.unitShort,
+    }),
+  ];
 });
 
 export const OTHER_PROMPTS = otherPrompts;
